@@ -5,7 +5,7 @@
 #ifndef PROJECT_PARTICLE_H
 #define PROJECT_PARTICLE_H
 
-enum colours {
+enum Colour {
     green,
     brown,
     magenta,
@@ -16,7 +16,7 @@ enum colours {
 struct Particle {
     float x, y;  // x and y coordinates
     float heading;  // direction particle is facing (+ is to the right, - to the left)
-    uint8_t colour;  // current colour
+    Colour colour;  // current colour
 };
 
 #endif //PROJECT_PARTICLE_H
