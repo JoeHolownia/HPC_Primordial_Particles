@@ -1,0 +1,10 @@
+{
+  "num_particles": 5000,
+  "width": 250,
+  "height": 250,
+  "radius": 5,
+  "alpha": 180,
+  "beta": 17,
+  "velocity": 0.67,
+  "time_steps": 2
+}

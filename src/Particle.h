@@ -5,6 +5,9 @@
 #ifndef PROJECT_PARTICLE_H
 #define PROJECT_PARTICLE_H
 
+// DEFINE MACROS HERE!
+#define PARTICLE_SIZE 69
+
 enum Colour {
     green,
     brown,

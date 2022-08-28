@@ -8,14 +8,13 @@
 // DEFINE MACROS HERE!
 #define CIRCLE_DEGREES 360
 
-Universe::Universe(int num_particles, float density, int width, int height, int radius, float a, float b, float velocity) {
+Universe::Universe(int num_particles, int width, int height, int radius, float a, float b, float velocity) {
     /*
      * Instantiate Universe.
      */
 
     // initialize universe parameters
     u_num_particles = num_particles;
-    u_density = density;
     u_width = width;
     u_height = height;
     u_radius = radius;
@@ -97,5 +96,9 @@ Particle* Universe::GetCurrentState() {
      * 
      */
     return u_state;
+}
+
+int Universe::GetNumParticles() {
+    return u_num_particles;
 }
 

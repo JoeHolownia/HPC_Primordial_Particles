@@ -11,17 +11,17 @@ class Universe {
 public:
 
     // constructor and core functions
-    Universe(int num_particles, float density, int width, int height, int radius, float a, float b, float velocity);
+    Universe(int num_particles, int width, int height, int radius, float a, float b, float velocity);
     void InitState();
     void Step();
     void Clean();
 
     // getters and setters
     Particle* GetCurrentState();
+    int GetNumParticles();
 
 private:
     int u_num_particles;  // number of particles
-    float u_density;  // particle placement density
     int u_width;
     int u_height;
     int u_radius;  // radius
