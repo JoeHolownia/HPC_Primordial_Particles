@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
     io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
 
     // run simulation for all time steps
-    //universe.Step();
+    universe.Step();
+    io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
 
     // clean up memory
     io_parser.CloseOutFile();

@@ -15,6 +15,14 @@ COLOUR_MAP = {
     4: "#f4e503" # yellow
 }
 
+COLOUR_MAP = {
+    0: "#31e600", # green
+    1: "#a07047", # brown
+    2: "#ff078e", # magenta
+    3: "#0064ff", # blue
+    4: "#f4e503" # yellow
+}
+
 FLOAT_BYTES = 4
 COLOUR_BYTES = 1
 
@@ -89,15 +97,17 @@ def read_binary_out_file(out_file_fp: str, time_steps: int, num_p: int) -> List[
         # states.append(State(xs, ys, colours))
         state = State(coords, colours)
         states.append(State(coords, colours))
-        print("State: ", state.coords[0, :])
+        print("State coords sample: ", state.coords[0:5, :])
+        print("xs: ", xs[0:5])
+        print("ys: ", ys[0:5])
+        print("State colours sample: ", state.colours[0:5])
 
 
 def update(i: int):
     global points
     points.set_offsets(states[i].coords)
-    #points.set_ydata(state.ys)
-    #points.set_array(state.colours)
-    #print(states[i].coords[0, :])
+    points.set_facecolors(states[i].colours)
+    points.set_edgecolors(states[i].colours)
     return points,
 
 
@@ -106,6 +116,7 @@ def run_animation():
     
     # initialize plot
     fig, ax = plt.subplots()
+    ax.set_facecolor('black')
     points = ax.scatter(states[0].coords[:, 0], states[0].coords[:, 1], color=states[0].colours, s=5)
 
     # run animation

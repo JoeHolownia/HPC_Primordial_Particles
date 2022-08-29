@@ -59,26 +59,43 @@ void Universe::Step() {
      */
 
     // create new state to assign to
+    Particle* new_state = new Particle[u_num_particles];
 
     // naive O(n^2) pairwise calculation
     for (int i = 0; i < u_num_particles; i++) {
 
         // current particle
-        Particle &p = u_state[i];
+        Particle &p1 = u_state[i];
 
         // interactions
-        for (int j = 0; j < u_num_particles; j++) {
+        // for (int j = 0; j < u_num_particles; j++) {
 
-            // other particle
-            const Particle &q = u_state[j];
+        //     // other particle
+        //     const Particle &p2 = u_state[j];
 
+        //     // get deltas
+        //     float dx = p1.x - p2.x;
+        //     float dy = p1.y - p2.y;
 
-        }
+        //     // first check if particle in square (simpler calculation)
+
+               // now check if particle in circle
+               // (x - center_x)² + (y - center_y)² < radius²
+
+               // then simply check if point is above or below in y to determine the points in each half
+
+        // }
+
+        Particle &new_p1 = new_state[i];
+        new_p1.x += 1;
+        new_p1.y += 1;
+        new_p1.colour = blue;
     }
 
 
     // delete memory from old state u_state, and then set pointer to new memory state
-    
+    delete[] u_state;
+    u_state = new_state;
 }
 
 void Universe::Clean() {
