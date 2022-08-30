@@ -69,6 +69,8 @@ def read_binary_out_file(out_file_fp: str, time_steps: int, num_p: int) -> List[
     """
     global states
 
+    print("Num p: ", num_p)
+
     # open binary data file
     with open(out_file_fp, "rb") as bin_file:
         fdata = np.fromfile(bin_file, dtype=np.single, count=-1)
@@ -77,30 +79,13 @@ def read_binary_out_file(out_file_fp: str, time_steps: int, num_p: int) -> List[
     # states = []
     s_off = 0
     print(fdata.shape)
-    for _ in range(time_steps):
+    for i in range(time_steps):
         xs = fdata[s_off: s_off + num_p]
         ys = fdata[s_off + num_p: s_off + 2 * num_p]
         coords = np.column_stack((xs, ys))
-        colours = np.array([COLOUR_MAP[int(x)] for x in fdata[s_off + 2 * num_p: s_off + 3 * num_p]])
+        colours = np.array([COLOUR_MAP[int(x) % 5] for x in fdata[s_off + 2 * num_p: s_off + 3 * num_p]])
         s_off += 3 * num_p
-        print(s_off)
-
-        # print(coords)
-        # print("xs: ", xs)
-        # print("ys: ", ys)
-        # print("colours: ", colours)
-
-        # print("Len xs: ", len(xs))
-        # print("Len ys: ", len(ys))
-        # print("Len colours: ", len(colours))
-
-        # states.append(State(xs, ys, colours))
-        state = State(coords, colours)
         states.append(State(coords, colours))
-        print("State coords sample: ", state.coords[0:5, :])
-        print("xs: ", xs[0:5])
-        print("ys: ", ys[0:5])
-        print("State colours sample: ", state.colours[0:5])
 
 
 def update(i: int):
@@ -120,8 +105,8 @@ def run_animation():
     points = ax.scatter(states[0].coords[:, 0], states[0].coords[:, 1], color=states[0].colours, s=5)
 
     # run animation
-    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=300)
-    #ani.save('animation.gif', writer='imagemagick', fps=10)
+    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
+    ani.save('animation.gif', writer='imagemagick', fps=30)
     plt.show()
 
 

@@ -11,7 +11,7 @@ class Universe {
 public:
 
     // constructor and core functions
-    Universe(int num_particles, int width, int height, int radius, float a, float b, float velocity);
+    Universe(int num_particles, int width, int height, int radius, int close_radius, float a, float b, float velocity);
     void InitState();
     void Step();
     void Clean();
@@ -25,6 +25,7 @@ private:
     int u_width;
     int u_height;
     int u_radius;  // radius
+    int u_close_radius;  // smaller radius for special colouring
     float u_a;  // alpha
     float u_b;  // beta
     float u_velocity;  // fixed-velocity
