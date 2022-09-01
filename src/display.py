@@ -106,8 +106,8 @@ def run_animation():
 
     # run animation
     ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
-    ani.save('animation.gif', writer='imagemagick', fps=30)
     plt.show()
+    ani.save('animation.gif', writer='imagemagick', fps=30)
 
 
 if __name__ == "__main__":

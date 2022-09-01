@@ -4,6 +4,7 @@
 
 #include "IOParser.h"
 using namespace std;
+using json = nlohmann::json;
 
 IOParser::IOParser(string settings_fpath, string out_disp_fpath, string out_log_fpath) {
     /**
@@ -17,10 +18,17 @@ IOParser::IOParser(string settings_fpath, string out_disp_fpath, string out_log_
     io_out_log_fpath = out_log_fpath;
 }
 
-void::IOParser::ReadSettingsFile() {
+json*::IOParser::ReadSettingsFile() {
     /**
      * @brief To be implemented later.
      */
+
+    // read in json data
+    std::ifstream json_settings_file(io_settings_fpath);
+    json data = json::parse(json_settings_file);
+    json_settings_file.close();
+
+    return &data;
 }
 
 void::IOParser::OpenOutFile() {

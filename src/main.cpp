@@ -32,10 +32,21 @@ int main(int argc, char *argv[]) {
     IOParser io_parser("universe_settings.json", "out_display.bin", "out_log.bin");
 
     // instantiate settings from file
+    // json settings = *io_parser.ReadSettingsFile();
+    // int num_particles = settings["num_particles"];
+    // float width = settings["width"];
+    // float height = settings["height"];
+    // float radius = settings["radius"];
+    // float close_radius = settings["close_radius"];
+    // float alpha = settings["alpha"];
+    // float beta = settings["beta"];
+    // float velocity = settings["velocity"];
+    //int time_steps = settings["time_steps"];
+    int time_steps = 2000;
 
-
-    // instantiate universe (currently just set to replicate Nature paper)
-    Universe universe(5000, 250, 250, 5, 1.3, 180, 17, 0.67);
+    // instantiate universe
+    //Universe universe(num_particles, width, height, radius, close_radius, alpha, beta, velocity); TODO: this!!
+    Universe universe(225, 50, 50, 5.0f, 1.3f, 180.0f, 17.0f, 0.67f);
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     io_parser.OpenOutFile();
@@ -48,7 +59,7 @@ int main(int argc, char *argv[]) {
     // }
 
     // run simulation for all time steps
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < time_steps; i++) {
       universe.Step();
       io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }

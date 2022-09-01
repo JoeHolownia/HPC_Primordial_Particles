@@ -8,7 +8,7 @@
 
 // DEFINE MACROS HERE!
 #define CIRCLE_DEGREES 360
-#define RADIANS_TO_DEGREES = 57.2957795131
+#define DEGREES_TO_RADIANS 0.017453292519
 #define PI 3.14159265
 
 int sign(int x) {
@@ -51,7 +51,7 @@ Colour get_colour(int n, int n_close) {
 }
 
 
-Universe::Universe(int num_particles, int width, int height, int radius, int close_radius, float a, float b, float velocity) {
+Universe::Universe(int num_particles, int width, int height, float radius, float close_radius, float a, float b, float velocity) {
     /**
      * @brief Universe constructor. 
      */
@@ -80,7 +80,7 @@ void::Universe::InitState() {
     u_state = new Particle[u_num_particles];
 
     // get seeded uniform random distribution
-    u_rand_gen.seed(10);  // (unsigned int)time(0) --> can use this to be different each time
+    u_rand_gen.seed((unsigned int)time(0));
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -132,6 +132,11 @@ void Universe::Step() {
         // interactions
         for (int j = 0; j < u_num_particles; j++) {
 
+            // exclude self from check
+            if (i == j) {
+                continue;
+            }
+
             // other particle
             Particle &p2 = u_state[j];
 
@@ -139,22 +144,41 @@ void Universe::Step() {
             float dx = p2.x - p1.x;
             float dy = p2.y - p1.y;
 
-            // TODO: first check if particle in square (simpler calculation) (OPTIMIZATION)
-            if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
+            // wrap deltas, as mirror image about box mid-point
+            if (dx > u_width * 0.5f) {
+                dx -= u_width;
+            } else if (dx < -u_width * 0.5f) {
+                dx += u_width;
+            }
+            if (dy > u_height * 0.5f) {
+                dy -= u_height;
+            } else if (dy < -u_height * 0.5f) {
+                dy += u_height;
+            }
+            
 
-                // check if particle in u_radius circle
-                float lhs = dx * dx + dy * dy;
-                if (lhs < u_radius * u_radius) {
+            // first check if particle in square (simpler calculation)
+            //if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
 
-                    // check if point is to the left or right in x to determine the points in each half
-                    if (dx <= 0) {l++;} else {r++;}
+            // check if particle in u_radius circle
+            float lhs = dx * dx + dy * dy;
+            if (lhs <= u_radius * u_radius) {
 
-                    // also check if particle in  smaller radius circle
-                    if (lhs < u_close_radius * u_close_radius) {
-                        n_close++;
-                    }
+                // check if point is to the left or right in x to determine the points in each half
+                if (dx <= 0) {l++;} else {r++;}
+
+                // TODO: THIS NEEDS TO BE RELATIVE TO THE CURRENT HEADING OF THE PARTICLE!!!
+                // Draw a triangle to the left and right of the current particles heading,
+                // AND ACTUALLY REPLACE THE SQUARE CHECK ABOVE WITH THIS! I.e. determine whether
+                // its to the left or right prior to checking in circle, with else if not in
+                // either triangle then skip!
+
+                // also check if particle in  smaller radius circle
+                if (lhs <= u_close_radius * u_close_radius) {
+                    n_close++;
                 }
             }
+            //}
         }
 
         // total num within circle
@@ -164,13 +188,29 @@ void Universe::Step() {
         new_p1.colour = get_colour(n, n_close);
 
         // set change in heading direction
-        float d_phi = u_a + u_b * n * sign(r - l);
+        float d_phi = u_a + u_b * (float) n * (float) sign(r - l);
         new_p1.heading = p1.heading + d_phi;
+
+        float new_heading_radians = new_p1.heading * DEGREES_TO_RADIANS;
 
         // apply force to get new x and y
         // TODO: OPTIMISATION HERE IS TO FILL A LOOKUP TABLE WITH VALUES!
-        new_p1.x = p1.x + cos(new_p1.heading) * u_velocity;
-        new_p1.y = p1.y + sin(new_p1.heading) * u_velocity;
+        new_p1.x = p1.x + cos(new_heading_radians) * u_velocity;
+        new_p1.y = p1.y + sin(new_heading_radians) * u_velocity;
+
+        // wrap x
+        if (new_p1.x < 0) {
+            new_p1.x += u_width;
+        } else if (new_p1.x >= u_width) {
+            new_p1.x -= u_width;
+        }
+
+        // wrap y
+        if (new_p1.y < 0) {
+            new_p1.y += u_height;
+        } else if (new_p1.y >= u_height) {
+            new_p1.y -= u_height;
+        }
 
         // // DUMMY TEST        
         // new_p1.x = p1.x + 1.0;

@@ -5,13 +5,14 @@
 #ifndef PROJECT_UNIVERSE_H
 #define PROJECT_UNIVERSE_H
 #include <random>
+#include <time.h>
 #include "Particle.h"
 
 class Universe {
 public:
 
     // constructor and core functions
-    Universe(int num_particles, int width, int height, int radius, int close_radius, float a, float b, float velocity);
+    Universe(int num_particles, int width, int height, float radius, float close_radius, float a, float b, float velocity);
     void InitState();
     void Step();
     void Clean();

@@ -9,5 +9,5 @@ main.o: main.cpp Universe.h IOParser.h
 universe.o: Universe.cpp Universe.h Particle.h
 	g++ -c ${CFLAGS} Universe.cpp
 
-ioparser.o: IOParser.cpp IOParser.h Particle.h
+ioparser.o: IOParser.cpp IOParser.h Particle.h nlohmann/json.hpp
 	g++ -c ${CFLAGS} IOParser.cpp
