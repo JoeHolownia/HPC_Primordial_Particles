@@ -8,8 +8,9 @@
 
 // DEFINE MACROS HERE!
 #define CIRCLE_DEGREES 360
-#define DEGREES_TO_RADIANS 0.017453292519
-#define PI 3.14159265
+#define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
+#define PI 3.141592653589793115997963468544185161590576171875
+
 
 int sign(int x) {
     /**
@@ -85,9 +86,6 @@ void::Universe::InitState() {
 
     // initialise all particles with random positions and headings
     for (int i = 0; i < u_num_particles; i++) {
-
-        // NOTE* WE EVENTUALLY PROBABLY WANT TO CONSIDER IN WHAT ORDER WE ASSIGN THESE RANDOMLY (WHEN DOING MPI)
-        // (THIS CAN SUPPORT CONTIGUOUS MEMORY ACCESS)
         Particle& p = u_state[i];
         p.colour = green;
         p.x = uniform_rand(u_rand_gen) * u_width;
@@ -105,7 +103,6 @@ void::Universe::InitState() {
     //     p.y = (float) i + 1.0;
     //     p.heading = uniform_rand(u_rand_gen) * CIRCLE_DEGREES;
     // }
-
 }
 
 void Universe::Step() {
@@ -117,7 +114,7 @@ void Universe::Step() {
     // create new state to assign to
     Particle* new_state = new Particle[u_num_particles];
 
-    // naive O(n^2) pairwise calculation
+    // O(n^2) pairwise calculation
     for (int i = 0; i < u_num_particles; i++) {
 
         // current particle, and corresponding new memory address
@@ -162,19 +159,14 @@ void Universe::Step() {
 
             // check if particle in u_radius circle
             float lhs = dx * dx + dy * dy;
-            if (lhs <= u_radius * u_radius) {
+            if (lhs < u_radius * u_radius) {
 
-                // check if point is to the left or right in x to determine the points in each half
-                if (dx <= 0) {l++;} else {r++;}
+                // check if point is to the left or right of heading to determine the points in each half
+                float p2_angle = atan2(dy, dx);
+                if (p2_angle >= 0) {l++;} else {r++;}
 
-                // TODO: THIS NEEDS TO BE RELATIVE TO THE CURRENT HEADING OF THE PARTICLE!!!
-                // Draw a triangle to the left and right of the current particles heading,
-                // AND ACTUALLY REPLACE THE SQUARE CHECK ABOVE WITH THIS! I.e. determine whether
-                // its to the left or right prior to checking in circle, with else if not in
-                // either triangle then skip!
-
-                // also check if particle in  smaller radius circle
-                if (lhs <= u_close_radius * u_close_radius) {
+                // also check if particle in smaller radius circle
+                if (lhs < u_close_radius * u_close_radius) {
                     n_close++;
                 }
             }
@@ -188,7 +180,7 @@ void Universe::Step() {
         new_p1.colour = get_colour(n, n_close);
 
         // set change in heading direction
-        float d_phi = u_a + u_b * (float) n * (float) sign(r - l);
+        float d_phi = u_a + u_b * n * sign(r - l);
         new_p1.heading = p1.heading + d_phi;
 
         float new_heading_radians = new_p1.heading * DEGREES_TO_RADIANS;

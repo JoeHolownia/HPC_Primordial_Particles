@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 
     // instantiate universe
     //Universe universe(num_particles, width, height, radius, close_radius, alpha, beta, velocity); TODO: this!!
-    Universe universe(225, 50, 50, 5.0f, 1.3f, 180.0f, 17.0f, 0.67f);
+    Universe universe(500, 50, 50, 5.0f, 1.3f, 180.0f, 17.0f, 0.67f);
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     io_parser.OpenOutFile();

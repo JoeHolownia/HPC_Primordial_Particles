@@ -23,9 +23,6 @@ COLOUR_MAP = {
     4: "#f4e503" # yellow
 }
 
-FLOAT_BYTES = 4
-COLOUR_BYTES = 1
-
 class Settings(NamedTuple):
     num_particles: int = 5000
     width: int = 250
@@ -37,8 +34,6 @@ class Settings(NamedTuple):
     time_steps: int = 1000
 
 class State(NamedTuple):
-    #xs: List[float]
-    #ys: List[float]
     coords: np.array
     colours: np.array
 
@@ -73,13 +68,13 @@ def read_binary_out_file(out_file_fp: str, time_steps: int, num_p: int) -> List[
 
     # open binary data file
     with open(out_file_fp, "rb") as bin_file:
-        fdata = np.fromfile(bin_file, dtype=np.single, count=-1)
+        fdata = np.fromfile(bin_file, dtype=np.double, count=-1)
 
     # read all states and their corresponding particle positions / colours  
     # states = []
     s_off = 0
     print(fdata.shape)
-    for i in range(time_steps):
+    for _ in range(time_steps):
         xs = fdata[s_off: s_off + num_p]
         ys = fdata[s_off + num_p: s_off + 2 * num_p]
         coords = np.column_stack((xs, ys))
@@ -107,7 +102,7 @@ def run_animation():
     # run animation
     ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
     plt.show()
-    ani.save('animation.gif', writer='imagemagick', fps=30)
+    ani.save('animation.gif', writer='Pillow', fps=30)
 
 
 if __name__ == "__main__":

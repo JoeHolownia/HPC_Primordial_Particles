@@ -13,8 +13,8 @@ using json = nlohmann::json;
 
 struct Settings {
     int num_particles;
-    float width;
-    float height;
+    int width;
+    int height;
     float radius;
     float close_radius;
     float alpha;

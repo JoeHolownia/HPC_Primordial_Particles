@@ -25,8 +25,8 @@ private:
     int u_num_particles;  // number of particles
     int u_width;
     int u_height;
-    int u_radius;  // radius
-    int u_close_radius;  // smaller radius for special colouring
+    float u_radius;  // radius
+    float u_close_radius;  // smaller radius for special colouring
     float u_a;  // alpha
     float u_b;  // beta
     float u_velocity;  // fixed-velocity
