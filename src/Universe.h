@@ -15,7 +15,7 @@ class Universe {
 public:
 
     // constructor and core functions
-    Universe(int num_particles, int width, int height, float radius, float close_radius, float a, float b, float velocity);
+    Universe(int num_particles, int width, int height, double density, double close_radius, double a, double b, double g);
     void InitState();
     void Step();
     void Clean();
@@ -28,11 +28,14 @@ private:
     int u_num_particles;  // number of particles
     int u_width;
     int u_height;
-    float u_radius;  // radius
-    float u_close_radius;  // smaller radius for special colouring
-    float u_a;  // alpha
-    float u_b;  // beta
-    float u_velocity;  // fixed-velocity
+    double u_density;  // radius
+    double u_close_radius;  // smaller radius for special colouring
+    double u_a;  // alpha
+    double u_b;  // beta
+    double u_g;  // gamma = fixed velocity / radius
+    double u_radius;  // radius
+    double u_radius_sqrd;
+    double u_velocity;  // velocity
     Particle *u_state;  // universe state, i.e. array of all particles
     std::mt19937 u_rand_gen;  // seed for random number generation
 };

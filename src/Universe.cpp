@@ -9,6 +9,7 @@
 #define CIRCLE_DEGREES 360
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
 #define PI 3.141592653589793115997963468544185161590576171875
+#define TAU 2 * PI
 
 
 int sign(int x) {
@@ -71,7 +72,7 @@ Colour get_colour(int n, int n_close) {
 }
 
 
-Universe::Universe(int num_particles, int width, int height, float radius, float close_radius, float a, float b, float velocity) {
+Universe::Universe(int num_particles, int width, int height, double density, double close_radius, double a, double b, double g) {
     /**
      * @brief Universe constructor. 
      */
@@ -80,11 +81,11 @@ Universe::Universe(int num_particles, int width, int height, float radius, float
     u_num_particles = num_particles;
     u_width = width;
     u_height = height;
-    u_radius = radius;
+    u_density = density;
     u_close_radius = close_radius;
-    u_a = a;
-    u_b = b;
-    u_velocity = velocity;
+    u_a = a * DEGREES_TO_RADIANS;  // convert to radians
+    u_b = b * DEGREES_TO_RADIANS;  // convert to radians
+    u_g = g;
 
     // initialise the start state using the given parameters
     InitState();
@@ -92,7 +93,8 @@ Universe::Universe(int num_particles, int width, int height, float radius, float
 
 void::Universe::InitState() {
     /**
-     * @brief Place all particles randomly in the Universe box using the given density and box size.
+     * @brief Place all particles randomly in the Universe box, and determine radius and velocity
+     * based on density and box dimensions.
      * 
      */
 
@@ -111,6 +113,11 @@ void::Universe::InitState() {
         p.y = uniform_rand(u_rand_gen) * u_height;
         p.heading = uniform_rand(u_rand_gen) * CIRCLE_DEGREES;
     }
+
+    // set radius and velocity based on box size
+    u_radius = sqrt((u_width * u_height * 1 * u_density) / (u_num_particles * PI));
+    u_velocity = u_g * u_radius; 
+    u_radius_sqrd = u_radius * u_radius;
 
     // DUMMY INITSTATE FOR DEBUG
     // double xs[4] = {5.0, 5.0, 4.0, 5.0};
@@ -163,44 +170,48 @@ void Universe::Step() {
             //printf("Particle P2:  %d\n", j);
 
             // get deltas
-            float dx = p2.x - p1.x;
-            float dy = p2.y - p1.y;
+            double dx = p2.x - p1.x;
+            double dy = p2.y - p1.y;
 
             // wrap deltas, as mirror image about box mid-point
-            // if (dx > u_width * 0.5f) {
-            //     dx -= u_width;
-            // } else if (dx < -u_width * 0.5f) {
-            //     dx += u_width;
-            // }
-            // if (dy > u_height * 0.5f) {
-            //     dy -= u_height;
-            // } else if (dy < -u_height * 0.5f) {
-            //     dy += u_height;
-            // }
+            if (dx > u_width * 0.5f) {
+                dx -= u_width;
+            } else if (dx < -u_width * 0.5f) {
+                dx += u_width;
+            }
+            if (dy > u_height * 0.5f) {
+                dy -= u_height;
+            } else if (dy < -u_height * 0.5f) {
+                dy += u_height;
+            }
 
             // first check if particle in square (simpler calculation)
-            if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
+            //if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
 
-                // check if particle in u_radius circle
-                float lhs = dx * dx + dy * dy;
-                if (lhs < u_radius * u_radius) {
+            // check if particle in u_radius circle
+            double lhs = dx * dx + dy * dy;
+            if (lhs <= u_radius_sqrd) {
 
-                    // check if point is to the left or right of heading to determine the points in each half
-                    float p2_angle = atan2(dy, dx);
-                    //printf("Relative P2 Angle:  %f\n", p2_angle);
-                    if (p2_angle >= 0) {
-                        l++;
-                    } 
-                    else {
-                        r++;
-                    }
-
-                    // also check if particle in smaller radius circle
-                    if (lhs < u_close_radius * u_close_radius) {
-                        n_close++;
-                    }
+                // check if point is to the left or right of heading to determine the points in each half
+                // double p2_angle = atan2(dy, dx);
+                // //printf("Relative P2 Angle:  %f\n", p2_angle);
+                // if (p2_angle >= 0) {
+                //     l++;
+                // } 
+                // else {
+                //     r++;
+                // }
+                if (dx * sin(p1.heading) - dy * cos(p1.heading) < 0) {
+                    r++;  // Particle j is to the right of i
+                }  else  {
+                    l++;
                 }
+                // also check if particle in smaller radius circle
+                // if (lhs < u_radius_sqrd) {
+                //     n_close++;
+                // }
             }
+            //}
         }
 
         // total num within circle
@@ -215,20 +226,19 @@ void Universe::Step() {
         // set change in heading direction
         double d_phi = u_a + u_b * n * sign(r - l);
         //printf("Original P1 heading:  %f\n", p1.heading);
-        p1.heading = std::fmod(p1.heading + d_phi, CIRCLE_DEGREES);
-        double heading_radians = p1.heading * DEGREES_TO_RADIANS;
+        p1.heading = std::fmod(p1.heading + d_phi, TAU);
         
         //printf("Delta P1 Heading:  %f\n", d_phi);
         //printf("New P1 heading:  %f\n", p1.heading);
 
         // apply force to get new x and y
         // TODO: OPTIMISATION HERE IS TO FILL A LOOKUP TABLE WITH VALUES!
-        double x_change = cos(heading_radians) * u_velocity;
-        double y_change = sin(heading_radians) * u_velocity;
+        double x_change = cos(p1.heading) * u_velocity;
+        double y_change = sin(p1.heading) * u_velocity;
         //printf("Original X Pos:  %f\n", p1.x);
         //printf("Original X Pos:  %f\n", p1.y);
-        p1.x = p1.x + x_change;
-        p1.y = p1.y + y_change;
+        p1.x += x_change;
+        p1.y += y_change;
         
         //printf("X Pos Delta:  %f\n", x_change);
         //printf("Y Pos Delta:  %f\n", y_change);
@@ -236,18 +246,18 @@ void Universe::Step() {
         //printf("New Y Pos:  %f\n", p1.y);
 
         // wrap x
-        // if (p1.x < 0) {
-        //     p1.x += u_width;
-        // } else if (p1.x >= u_width) {
-        //     p1.x -= u_width;
-        // }
+        if (p1.x < 0) {
+            p1.x += u_width;
+        } else if (p1.x >= u_width) {
+            p1.x -= u_width;
+        }
 
-        // // wrap y
-        // if (p1.y < 0) {
-        //     p1.y += u_height;
-        // } else if (p1.y >= u_height) {
-        //     p1.y -= u_height;
-        // }
+        // wrap y
+        if (p1.y < 0) {
+            p1.y += u_height;
+        } else if (p1.y >= u_height) {
+            p1.y -= u_height;
+        }
     }
 
     // delete memory from old state u_state, and then set pointer to new memory state

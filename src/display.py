@@ -27,10 +27,10 @@ class Settings(NamedTuple):
     num_particles: int = 5000
     width: int = 250
     height: int = 250
-    radius: int = 5
+    density: int = 8
     alpha: int = 180
     beta: int = 17
-    velocity: float = 0.67
+    gamma: float = 0.134
     time_steps: int = 1000
 
 class State(NamedTuple):
@@ -50,10 +50,10 @@ def load_settings_json(json_fpath: str):
         num_particles=json_dict["num_particles"],
         width=json_dict["width"],
         height=json_dict["height"],
-        radius=json_dict["radius"],
+        density=json_dict["density"],
         alpha=json_dict["alpha"],
         beta=json_dict["beta"],
-        velocity=json_dict["velocity"],
+        gamma=json_dict["gamma"],
         time_steps=json_dict["time_steps"]
     )
 
@@ -104,7 +104,7 @@ def run_animation(settings: Settings):
     # run animation
     ani = animation.FuncAnimation(fig, update, range(len(states)), interval=60)
     plt.show()
-    ani.save('animation.gif', writer='Pillow', fps=5)
+    ani.save('animation.gif', writer='Pillow', fps=15)
 
 
 if __name__ == "__main__":
