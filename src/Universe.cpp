@@ -139,9 +139,6 @@ void Universe::Step() {
      * 
      */
 
-    // array of random particle move orders for asynchronous update in this step
-    // int* move_order = permuted_array(u_num_particles);
-
     // O(n^2) pairwise calculation
     for (int i = 0; i < u_num_particles; i++) {
 
@@ -203,34 +200,19 @@ void Universe::Step() {
 
         // total num within circle
         int n = l + r;
-        //printf("P1 N: %d\n", n);
-        //printf("P1 L: %d\n", l);
-        //printf("P1 R: %d\n", r);
 
         // set colour
         p1.colour = get_colour(n, n_close);
 
         // set change in heading direction
         float d_phi = u_a + u_b * n * sign(r - l);
-        //printf("Original P1 heading:  %f\n", p1.heading);
-        p1.heading = std::fmod(p1.heading + d_phi, TAU);
-        
-        //printf("Delta P1 Heading:  %f\n", d_phi);
-        //printf("New P1 heading:  %f\n", p1.heading);
+        //p1.heading = std::fmod(p1.heading + d_phi, TAU);
+        p1.heading = p1.heading + d_phi;
 
         // apply force to get new x and y
         // TODO: OPTIMISATION HERE IS TO FILL A LOOKUP TABLE WITH VALUES!
-        float x_change = cos(p1.heading) * u_velocity;
-        float y_change = sin(p1.heading) * u_velocity;
-        //printf("Original X Pos:  %f\n", p1.x);
-        //printf("Original X Pos:  %f\n", p1.y);
-        p1.x += x_change;
-        p1.y += y_change;
-        
-        //printf("X Pos Delta:  %f\n", x_change);
-        //printf("Y Pos Delta:  %f\n", y_change);
-        //printf("New X Pos:  %f\n", p1.x);
-        //printf("New Y Pos:  %f\n", p1.y);
+        p1.x += cos(p1.heading) * u_velocity;
+        p1.y += sin(p1.heading) * u_velocity;
 
         // wrap x
         if (p1.x < 0) {
