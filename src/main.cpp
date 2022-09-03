@@ -39,14 +39,13 @@ int main(int argc, char *argv[]) {
     int width = settings["width"].get<int>();
     int height = settings["height"].get<int>();
     float density = settings["density"].get<float>();
-    float close_radius = settings["close_radius"].get<float>();
     float alpha = settings["alpha"].get<float>();
     float beta = settings["beta"].get<float>();
     float gamma = settings["gamma"].get<float>();
     int time_steps = settings["time_steps"].get<int>();
 
     // instantiate universe
-    Universe universe(num_particles, width, height, density, close_radius, alpha, beta, gamma);
+    Universe universe(num_particles, width, height, density, alpha, beta, gamma);
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     io_parser.OpenOutFile();

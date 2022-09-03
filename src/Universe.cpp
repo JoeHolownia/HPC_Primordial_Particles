@@ -6,10 +6,10 @@
 #include "Particle.h"
 
 // DEFINE MACROS HERE!
-#define CIRCLE_DEGREES 360
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
 #define PI 3.141592653589793115997963468544185161590576171875
 #define TAU 2 * PI
+#define CLOSE_RADIUS_RATIO 3.846153846
 
 
 int sign(int x) {
@@ -72,7 +72,7 @@ Colour get_colour(int n, int n_close) {
 }
 
 
-Universe::Universe(int num_particles, int width, int height, double density, double close_radius, double a, double b, double g) {
+Universe::Universe(int num_particles, int width, int height, float density, float a, float b, float g) {
     /**
      * @brief Universe constructor. 
      */
@@ -82,10 +82,16 @@ Universe::Universe(int num_particles, int width, int height, double density, dou
     u_width = width;
     u_height = height;
     u_density = density;
-    u_close_radius = close_radius;
     u_a = a * DEGREES_TO_RADIANS;  // convert to radians
     u_b = b * DEGREES_TO_RADIANS;  // convert to radians
     u_g = g;
+
+    // set radii and velocity based on box size
+    u_radius = sqrt((u_width * u_height * 1 * u_density) / (u_num_particles * PI));
+    u_velocity = u_g * u_radius; 
+    u_radius_sqrd = u_radius * u_radius;
+    u_close_radius = u_radius / CLOSE_RADIUS_RATIO;
+    u_close_radius_sqrd = u_close_radius * u_close_radius;
 
     // initialise the start state using the given parameters
     InitState();
@@ -95,7 +101,6 @@ void::Universe::InitState() {
     /**
      * @brief Place all particles randomly in the Universe box, and determine radius and velocity
      * based on density and box dimensions.
-     * 
      */
 
     // instantiate state with particles
@@ -111,13 +116,8 @@ void::Universe::InitState() {
         p.colour = green;
         p.x = uniform_rand(u_rand_gen) * u_width;
         p.y = uniform_rand(u_rand_gen) * u_height;
-        p.heading = uniform_rand(u_rand_gen) * CIRCLE_DEGREES;
+        p.heading = uniform_rand(u_rand_gen) * TAU;
     }
-
-    // set radius and velocity based on box size
-    u_radius = sqrt((u_width * u_height * 1 * u_density) / (u_num_particles * PI));
-    u_velocity = u_g * u_radius; 
-    u_radius_sqrd = u_radius * u_radius;
 
     // DUMMY INITSTATE FOR DEBUG
     // double xs[4] = {5.0, 5.0, 4.0, 5.0};
@@ -140,16 +140,12 @@ void Universe::Step() {
      */
 
     // array of random particle move orders for asynchronous update in this step
-    int* move_order = permuted_array(u_num_particles);
+    // int* move_order = permuted_array(u_num_particles);
 
     // O(n^2) pairwise calculation
     for (int i = 0; i < u_num_particles; i++) {
 
         // choose current particle randomly
-        // int rand_index = move_order[i];
-        //printf("Rand Index P1:  %d\n", rand_index);
-        //Particle &p1 = u_state[rand_index];
-        //printf("Particle P1:  %d\n", i);
         Particle &p1 = u_state[i];
 
         // counts of particles within left and right semi-circle
@@ -167,11 +163,10 @@ void Universe::Step() {
 
             // other particle
             Particle &p2 = u_state[j];
-            //printf("Particle P2:  %d\n", j);
 
             // get deltas
-            double dx = p2.x - p1.x;
-            double dy = p2.y - p1.y;
+            float dx = p2.x - p1.x;
+            float dy = p2.y - p1.y;
 
             // wrap deltas, as mirror image about box mid-point
             if (dx > u_width * 0.5f) {
@@ -186,32 +181,24 @@ void Universe::Step() {
             }
 
             // first check if particle in square (simpler calculation)
-            //if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
+            if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
 
-            // check if particle in u_radius circle
-            double lhs = dx * dx + dy * dy;
-            if (lhs <= u_radius_sqrd) {
+                // check if particle in u_radius circle
+                float lhs = dx * dx + dy * dy;
+                if (lhs <= u_radius_sqrd) {
 
-                // check if point is to the left or right of heading to determine the points in each half
-                // double p2_angle = atan2(dy, dx);
-                // //printf("Relative P2 Angle:  %f\n", p2_angle);
-                // if (p2_angle >= 0) {
-                //     l++;
-                // } 
-                // else {
-                //     r++;
-                // }
-                if (dx * sin(p1.heading) - dy * cos(p1.heading) < 0) {
-                    r++;  // Particle j is to the right of i
-                }  else  {
-                    l++;
+                    // check if point is to the left or right of heading to determine the points in each half
+                    if (dx * sin(p1.heading) - dy * cos(p1.heading) < 0) {
+                        r++;
+                    }  else  {
+                        l++;
+                    }
+                    // also check if particle in smaller radius circle, for colouring
+                    if (lhs < u_close_radius_sqrd) {
+                        n_close++;
+                    }
                 }
-                // also check if particle in smaller radius circle
-                // if (lhs < u_radius_sqrd) {
-                //     n_close++;
-                // }
             }
-            //}
         }
 
         // total num within circle
@@ -224,7 +211,7 @@ void Universe::Step() {
         p1.colour = get_colour(n, n_close);
 
         // set change in heading direction
-        double d_phi = u_a + u_b * n * sign(r - l);
+        float d_phi = u_a + u_b * n * sign(r - l);
         //printf("Original P1 heading:  %f\n", p1.heading);
         p1.heading = std::fmod(p1.heading + d_phi, TAU);
         
@@ -233,8 +220,8 @@ void Universe::Step() {
 
         // apply force to get new x and y
         // TODO: OPTIMISATION HERE IS TO FILL A LOOKUP TABLE WITH VALUES!
-        double x_change = cos(p1.heading) * u_velocity;
-        double y_change = sin(p1.heading) * u_velocity;
+        float x_change = cos(p1.heading) * u_velocity;
+        float y_change = sin(p1.heading) * u_velocity;
         //printf("Original X Pos:  %f\n", p1.x);
         //printf("Original X Pos:  %f\n", p1.y);
         p1.x += x_change;
@@ -261,7 +248,7 @@ void Universe::Step() {
     }
 
     // delete memory from old state u_state, and then set pointer to new memory state
-    delete[] move_order;
+    // delete[] move_order;
     // u_state = new_state;
 }
 

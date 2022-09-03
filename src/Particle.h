@@ -14,8 +14,8 @@ enum Colour {
 };
 
 struct Particle {
-    double x, y;  // x and y coordinates
-    double heading;  // direction particle is facing (+ is to the right, - to the left)
+    float x, y;  // x and y coordinates
+    float heading;  // direction particle is facing (+ is to the right, - to the left)
     Colour colour;  // current colour
 };
 

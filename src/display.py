@@ -68,7 +68,7 @@ def read_binary_out_file(out_file_fp: str, time_steps: int, num_p: int) -> List[
 
     # open binary data file
     with open(out_file_fp, "rb") as bin_file:
-        fdata = np.fromfile(bin_file, dtype=np.double, count=-1)
+        fdata = np.fromfile(bin_file, dtype=np.single, count=-1)
 
     # read all states and their corresponding particle positions / colours  
     # states = []
@@ -101,10 +101,13 @@ def run_animation(settings: Settings):
     ax.set_ylim((0, settings.height))
     points = ax.scatter(states[0].coords[:, 0], states[0].coords[:, 1], color=states[0].colours, s=5)
 
+    # save png of initial state
+    fig.savefig("init_state.png", format='png')
+
     # run animation
-    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=60)
+    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
     plt.show()
-    ani.save('animation.gif', writer='Pillow', fps=15)
+    ani.save('animation.gif', writer='Pillow', fps=30)
 
 
 if __name__ == "__main__":
