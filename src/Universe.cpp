@@ -2,7 +2,6 @@
 // Created by joeho on 13/08/2022.
 //
 
-#include <math.h> 
 #include "Universe.h"
 #include "Particle.h"
 
@@ -24,6 +23,26 @@ int sign(int x) {
         return 1;
     }
 }
+
+int* permuted_array(int n) {
+    /**
+     * @brief creates an array filled with a random permutation of values 0...n.
+     * 
+     */
+
+    int* p_array = new int[n];
+
+    // fill array
+    for (int i = 0; i < n; i++) {
+        p_array[i] = i;
+    }
+
+    // permute array
+    std::random_shuffle(p_array, p_array + n);
+
+    return p_array;
+}
+
 
 Colour get_colour(int n, int n_close) {
     /**
@@ -94,14 +113,16 @@ void::Universe::InitState() {
     }
 
     // DUMMY INITSTATE FOR DEBUG
-    // int colour = green;
+    // double xs[4] = {5.0, 5.0, 4.0, 5.0};
+    // double ys[4] = {5.0, 6.0, 5.0, 4.0};
+    // Colour colours[4] = {magenta, green, green, green};
+    // double headings[4] = {0, 0, 0, 0};
     // for (int i = 0; i < u_num_particles; i++) {
     //     Particle& p = u_state[i];
-    //     p.colour = (Colour) colour;
-    //     colour++;
-    //     p.x = (float) i + 1.0;
-    //     p.y = (float) i + 1.0;
-    //     p.heading = uniform_rand(u_rand_gen) * CIRCLE_DEGREES;
+    //     p.x = xs[i];
+    //     p.y = ys[i];
+    //     p.colour = colours[i];
+    //     p.heading = headings[i];
     // }
 }
 
@@ -111,15 +132,18 @@ void Universe::Step() {
      * 
      */
 
-    // create new state to assign to
-    Particle* new_state = new Particle[u_num_particles];
+    // array of random particle move orders for asynchronous update in this step
+    int* move_order = permuted_array(u_num_particles);
 
     // O(n^2) pairwise calculation
     for (int i = 0; i < u_num_particles; i++) {
 
-        // current particle, and corresponding new memory address
+        // choose current particle randomly
+        // int rand_index = move_order[i];
+        //printf("Rand Index P1:  %d\n", rand_index);
+        //Particle &p1 = u_state[rand_index];
+        //printf("Particle P1:  %d\n", i);
         Particle &p1 = u_state[i];
-        Particle &new_p1 = new_state[i];
 
         // counts of particles within left and right semi-circle
         int l = 0;
@@ -136,84 +160,99 @@ void Universe::Step() {
 
             // other particle
             Particle &p2 = u_state[j];
+            //printf("Particle P2:  %d\n", j);
 
             // get deltas
             float dx = p2.x - p1.x;
             float dy = p2.y - p1.y;
 
             // wrap deltas, as mirror image about box mid-point
-            if (dx > u_width * 0.5f) {
-                dx -= u_width;
-            } else if (dx < -u_width * 0.5f) {
-                dx += u_width;
-            }
-            if (dy > u_height * 0.5f) {
-                dy -= u_height;
-            } else if (dy < -u_height * 0.5f) {
-                dy += u_height;
-            }
-            
+            // if (dx > u_width * 0.5f) {
+            //     dx -= u_width;
+            // } else if (dx < -u_width * 0.5f) {
+            //     dx += u_width;
+            // }
+            // if (dy > u_height * 0.5f) {
+            //     dy -= u_height;
+            // } else if (dy < -u_height * 0.5f) {
+            //     dy += u_height;
+            // }
 
             // first check if particle in square (simpler calculation)
-            //if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
+            if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
 
-            // check if particle in u_radius circle
-            float lhs = dx * dx + dy * dy;
-            if (lhs < u_radius * u_radius) {
+                // check if particle in u_radius circle
+                float lhs = dx * dx + dy * dy;
+                if (lhs < u_radius * u_radius) {
 
-                // check if point is to the left or right of heading to determine the points in each half
-                float p2_angle = atan2(dy, dx);
-                if (p2_angle >= 0) {l++;} else {r++;}
+                    // check if point is to the left or right of heading to determine the points in each half
+                    float p2_angle = atan2(dy, dx);
+                    //printf("Relative P2 Angle:  %f\n", p2_angle);
+                    if (p2_angle >= 0) {
+                        l++;
+                    } 
+                    else {
+                        r++;
+                    }
 
-                // also check if particle in smaller radius circle
-                if (lhs < u_close_radius * u_close_radius) {
-                    n_close++;
+                    // also check if particle in smaller radius circle
+                    if (lhs < u_close_radius * u_close_radius) {
+                        n_close++;
+                    }
                 }
             }
-            //}
         }
 
         // total num within circle
         int n = l + r;
+        //printf("P1 N: %d\n", n);
+        //printf("P1 L: %d\n", l);
+        //printf("P1 R: %d\n", r);
 
         // set colour
-        new_p1.colour = get_colour(n, n_close);
+        p1.colour = get_colour(n, n_close);
 
         // set change in heading direction
-        float d_phi = u_a + u_b * n * sign(r - l);
-        new_p1.heading = p1.heading + d_phi;
-
-        float new_heading_radians = new_p1.heading * DEGREES_TO_RADIANS;
+        double d_phi = u_a + u_b * n * sign(r - l);
+        //printf("Original P1 heading:  %f\n", p1.heading);
+        p1.heading = std::fmod(p1.heading + d_phi, CIRCLE_DEGREES);
+        double heading_radians = p1.heading * DEGREES_TO_RADIANS;
+        
+        //printf("Delta P1 Heading:  %f\n", d_phi);
+        //printf("New P1 heading:  %f\n", p1.heading);
 
         // apply force to get new x and y
         // TODO: OPTIMISATION HERE IS TO FILL A LOOKUP TABLE WITH VALUES!
-        new_p1.x = p1.x + cos(new_heading_radians) * u_velocity;
-        new_p1.y = p1.y + sin(new_heading_radians) * u_velocity;
+        double x_change = cos(heading_radians) * u_velocity;
+        double y_change = sin(heading_radians) * u_velocity;
+        //printf("Original X Pos:  %f\n", p1.x);
+        //printf("Original X Pos:  %f\n", p1.y);
+        p1.x = p1.x + x_change;
+        p1.y = p1.y + y_change;
+        
+        //printf("X Pos Delta:  %f\n", x_change);
+        //printf("Y Pos Delta:  %f\n", y_change);
+        //printf("New X Pos:  %f\n", p1.x);
+        //printf("New Y Pos:  %f\n", p1.y);
 
         // wrap x
-        if (new_p1.x < 0) {
-            new_p1.x += u_width;
-        } else if (new_p1.x >= u_width) {
-            new_p1.x -= u_width;
-        }
+        // if (p1.x < 0) {
+        //     p1.x += u_width;
+        // } else if (p1.x >= u_width) {
+        //     p1.x -= u_width;
+        // }
 
-        // wrap y
-        if (new_p1.y < 0) {
-            new_p1.y += u_height;
-        } else if (new_p1.y >= u_height) {
-            new_p1.y -= u_height;
-        }
-
-        // // DUMMY TEST        
-        // new_p1.x = p1.x + 1.0;
-        // new_p1.y = p1.y + 1.0;
-        // new_p1.colour = (Colour) (((int) p1.colour) + 1);
+        // // wrap y
+        // if (p1.y < 0) {
+        //     p1.y += u_height;
+        // } else if (p1.y >= u_height) {
+        //     p1.y -= u_height;
+        // }
     }
 
-
     // delete memory from old state u_state, and then set pointer to new memory state
-    delete[] u_state;
-    u_state = new_state;
+    delete[] move_order;
+    // u_state = new_state;
 }
 
 void Universe::Clean() {

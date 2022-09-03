@@ -29,47 +29,34 @@ void SystemCommandCall(std::string command)
 int main(int argc, char *argv[]) {
 
     // instantiate io parser
-    IOParser io_parser("universe_settings.json", "out_display.bin", "out_log.bin");
+    IOParser io_parser("settings.json", "out_display.bin", "out_log.bin");
 
-    // instantiate settings from file
-    // json settings = *io_parser.ReadSettingsFile();
-    // int num_particles = settings["num_particles"];
-    // float width = settings["width"];
-    // float height = settings["height"];
-    // float radius = settings["radius"];
-    // float close_radius = settings["close_radius"];
-    // float alpha = settings["alpha"];
-    // float beta = settings["beta"];
-    // float velocity = settings["velocity"];
-    //int time_steps = settings["time_steps"];
-    int time_steps = 2000;
+    // read in json data
+    std::ifstream json_settings_file("settings.json");
+    json settings = json::parse(json_settings_file);
+    json_settings_file.close();
+    int num_particles = settings["num_particles"].get<int>();
+    int width = settings["width"].get<int>();
+    int height = settings["height"].get<int>();
+    float radius = settings["radius"].get<float>();
+    float close_radius = settings["close_radius"].get<float>();
+    float alpha = settings["alpha"].get<float>();
+    float beta = settings["beta"].get<float>();
+    float velocity = settings["velocity"].get<float>();
+    int time_steps = settings["time_steps"].get<int>();
 
     // instantiate universe
-    //Universe universe(num_particles, width, height, radius, close_radius, alpha, beta, velocity); TODO: this!!
-    Universe universe(500, 50, 50, 5.0f, 1.3f, 180.0f, 17.0f, 0.67f);
+    Universe universe(num_particles, width, height, radius, close_radius, alpha, beta, velocity);
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     io_parser.OpenOutFile();
     io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
-
-    // Particle* state = universe.GetCurrentState();
-    // printf("===ORIGINAL STATE===\n");
-    // for (size_t i = 0; i < universe.GetNumParticles(); i++) {
-    //     std::cout << "x: " << state[i].x << "  y: " << state[i].y << "  colour: " << state[i].colour << '\n';
-    // }
 
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
       universe.Step();
       io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }
-
-    // state = universe.GetCurrentState();
-    // std::cout << "===STATE AFTER STEP===\n";
-    // for (size_t i = 0; i < universe.GetNumParticles(); i++) {
-    //     std::cout << "x: " << state[i].x << "  y: " << state[i].y << "  colour: " << state[i].colour << '\n';
-    // }
-    // std::cout.flush();
 
     // clean up memory
     io_parser.CloseOutFile();

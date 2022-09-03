@@ -91,18 +91,20 @@ def update(i: int):
     return points,
 
 
-def run_animation():
+def run_animation(settings: Settings):
     global points
     
     # initialize plot
     fig, ax = plt.subplots()
     ax.set_facecolor('black')
+    ax.set_xlim((0, settings.width))
+    ax.set_ylim((0, settings.height))
     points = ax.scatter(states[0].coords[:, 0], states[0].coords[:, 1], color=states[0].colours, s=5)
 
     # run animation
-    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
+    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=60)
     plt.show()
-    ani.save('animation.gif', writer='Pillow', fps=30)
+    ani.save('animation.gif', writer='Pillow', fps=5)
 
 
 if __name__ == "__main__":
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     settings = load_settings_json("settings.json")
 
     # open and load log file
-    read_binary_out_file("out_display.bin", settings.time_steps, settings.num_particles)
+    read_binary_out_file("out_display.bin", settings.time_steps + 1, settings.num_particles)
 
     # for s in states:
     # s = states[0]
@@ -119,4 +121,4 @@ if __name__ == "__main__":
     #     print(f"{s.xs[i]}, {s.ys[i]}, {s.colours[i]}")
 
     # run animation in matplotlib
-    run_animation()
+    run_animation(settings)

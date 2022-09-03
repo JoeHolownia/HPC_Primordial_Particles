@@ -4,8 +4,11 @@
 
 #ifndef PROJECT_UNIVERSE_H
 #define PROJECT_UNIVERSE_H
+#include <algorithm>
 #include <random>
+#include <math.h> 
 #include <time.h>
+#include <cmath>
 #include "Particle.h"
 
 class Universe {

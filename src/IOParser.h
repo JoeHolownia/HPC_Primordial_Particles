@@ -28,7 +28,7 @@ public:
 
     // constructor and core functions
     IOParser(std::string settings_fpath, std::string out_disp_fpath, std::string out_log_fpath);
-    json* ReadSettingsFile();
+    json ReadSettingsFile();
     void OpenOutFile();
     void WriteStateToOutFile(Particle* state, int n);
     void CloseOutFile();
