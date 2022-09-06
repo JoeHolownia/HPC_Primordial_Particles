@@ -9,6 +9,8 @@
 #include <math.h> 
 #include <time.h>
 #include <cmath>
+#include <chrono>
+#include <iostream>
 #include "Particle.h"
 
 class Universe {

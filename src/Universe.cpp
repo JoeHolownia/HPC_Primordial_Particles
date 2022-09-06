@@ -107,7 +107,8 @@ void::Universe::InitState() {
     u_state = new Particle[u_num_particles];
 
     // get seeded uniform random distribution
-    u_rand_gen.seed((unsigned int)time(0));
+    // u_rand_gen.seed((unsigned int)time(0));
+    u_rand_gen.seed(100); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -118,19 +119,6 @@ void::Universe::InitState() {
         p.y = uniform_rand(u_rand_gen) * u_height;
         p.heading = uniform_rand(u_rand_gen) * TAU;
     }
-
-    // DUMMY INITSTATE FOR DEBUG
-    // double xs[4] = {5.0, 5.0, 4.0, 5.0};
-    // double ys[4] = {5.0, 6.0, 5.0, 4.0};
-    // Colour colours[4] = {magenta, green, green, green};
-    // double headings[4] = {0, 0, 0, 0};
-    // for (int i = 0; i < u_num_particles; i++) {
-    //     Particle& p = u_state[i];
-    //     p.x = xs[i];
-    //     p.y = ys[i];
-    //     p.colour = colours[i];
-    //     p.heading = headings[i];
-    // }
 }
 
 void Universe::Step() {
@@ -142,7 +130,7 @@ void Universe::Step() {
     // O(n^2) pairwise calculation
     for (int i = 0; i < u_num_particles; i++) {
 
-        // choose current particle randomly
+        // get particle
         Particle &p1 = u_state[i];
 
         // counts of particles within left and right semi-circle
@@ -190,6 +178,7 @@ void Universe::Step() {
                     }  else  {
                         l++;
                     }
+
                     // also check if particle in smaller radius circle, for colouring
                     if (lhs < u_close_radius_sqrd) {
                         n_close++;
@@ -205,12 +194,9 @@ void Universe::Step() {
         p1.colour = get_colour(n, n_close);
 
         // set change in heading direction
-        float d_phi = u_a + u_b * n * sign(r - l);
-        //p1.heading = std::fmod(p1.heading + d_phi, TAU);
-        p1.heading = p1.heading + d_phi;
+        p1.heading += u_a + u_b * n * sign(r - l);
 
         // apply force to get new x and y
-        // TODO: OPTIMISATION HERE IS TO FILL A LOOKUP TABLE WITH VALUES!
         p1.x += cos(p1.heading) * u_velocity;
         p1.y += sin(p1.heading) * u_velocity;
 
@@ -228,10 +214,6 @@ void Universe::Step() {
             p1.y -= u_height;
         }
     }
-
-    // delete memory from old state u_state, and then set pointer to new memory state
-    // delete[] move_order;
-    // u_state = new_state;
 }
 
 void Universe::Clean() {

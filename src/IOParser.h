@@ -7,9 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "nlohmann/json.hpp"
 #include "Particle.h"
-using json = nlohmann::json;
 
 struct Settings {
     int num_particles;
@@ -28,7 +26,6 @@ public:
 
     // constructor and core functions
     IOParser(std::string settings_fpath, std::string out_disp_fpath, std::string out_log_fpath);
-    json ReadSettingsFile();
     void OpenOutFile();
     void WriteStateToOutFile(Particle* state, int n);
     void CloseOutFile();
