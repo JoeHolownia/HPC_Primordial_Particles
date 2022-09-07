@@ -87,7 +87,7 @@ Universe::Universe(int num_particles, int width, int height, float density, floa
     u_g = g;
 
     // set radii and velocity based on box size
-    u_radius = sqrt((u_width * u_height * 1 * u_density) / (u_num_particles * PI));
+    u_radius = sqrt((u_width * u_height * u_density) / (u_num_particles * PI));
     u_velocity = u_g * u_radius; 
     u_radius_sqrd = u_radius * u_radius;
     u_close_radius = u_radius / CLOSE_RADIUS_RATIO;
@@ -107,8 +107,8 @@ void::Universe::InitState() {
     u_state = new Particle[u_num_particles];
 
     // get seeded uniform random distribution
-    // u_rand_gen.seed((unsigned int)time(0));
-    u_rand_gen.seed(100); // FOR TIMING!
+    u_rand_gen.seed((unsigned int)time(0));
+    // u_rand_gen.seed(100); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -179,7 +179,7 @@ void Universe::Step() {
                         l++;
                     }
 
-                    // also check if particle in smaller radius circle, for colouring
+                    // also check if particle in smaller radius circle, just for colouring
                     if (lhs < u_close_radius_sqrd) {
                         n_close++;
                     }

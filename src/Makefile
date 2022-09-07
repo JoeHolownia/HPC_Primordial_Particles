@@ -1,4 +1,4 @@
-CFLAGS = -std=c++11 -pg -g -O0 -lm
+CFLAGS = -std=c++11 -pg -O0
 
 all: main.o universe.o ioparser.o
 	g++ main.o universe.o ioparser.o ${CFLAGS} -o particles
