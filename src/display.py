@@ -16,7 +16,7 @@ COLOUR_MAP = {
 }
 
 class Settings(NamedTuple):
-    num_particles: int = 5000
+    num_particles: int
     width: int = 250
     height: int = 250
     density: int = 8
