@@ -32,10 +32,8 @@ public:
 
 private:
         std::string io_settings_fpath;
-
         std::string io_out_disp_fpath;
-        std::ofstream io_out_disp_file; 
-
+        std::ofstream io_out_disp_file;
         std::string io_out_log_fpath;
         std::ofstream io_out_log_file; 
 };

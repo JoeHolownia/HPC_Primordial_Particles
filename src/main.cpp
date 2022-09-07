@@ -4,8 +4,10 @@
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
-void SystemCommandCall(std::string command)
-{
+void SystemCommandCall(std::string command) {
+    /**
+     * @brief Function to call other processes with a given command.
+     */
   #ifdef _WIN64
     // run this on windows OS
     int commLen = command.length();
@@ -94,8 +96,8 @@ int main(int argc, char *argv[]) {
     universe.Clean();
 
     // call Python to plot data 
-    // std::string command = "python display.py";
-    // SystemCommandCall(command);
+     std::string command = "python display.py";
+     SystemCommandCall(command);
 
     return 0;
 }

@@ -18,10 +18,18 @@ IOParser::IOParser(string settings_fpath, string out_disp_fpath, string out_log_
 }
 
 void::IOParser::OpenOutFile() {
+    /**
+     * @brief Opens the output binary file stream.
+     */
     io_out_disp_file.open(io_out_disp_fpath, ios::out | ios::binary);
 }
 
 void::IOParser::WriteStateToOutFile(Particle* state, int n) {
+    /**
+     * @brief Writes the given state to the IOParser binary out file, as an
+     * array of x coords, y coords and then colours, all as floats. Does
+     * not open or close the filestream, simply flushes the output stream.
+     */
 
     // create temporary arrays for writing
     float* arr_x = new float[n];
@@ -50,6 +58,9 @@ void::IOParser::WriteStateToOutFile(Particle* state, int n) {
 }
 
 void::IOParser::CloseOutFile() {
+    /**
+     * @brief Closes the output binary file stream.
+     */
     io_out_disp_file.close();
 }
 

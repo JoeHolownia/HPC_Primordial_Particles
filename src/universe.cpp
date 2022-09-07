@@ -5,7 +5,6 @@
 #include "universe.h"
 #include "particle.h"
 
-// DEFINE MACROS HERE!
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
 #define PI 3.141592653589793115997963468544185161590576171875
 #define TAU 2 * PI
@@ -234,6 +233,9 @@ Particle* Universe::GetCurrentState() {
 }
 
 int Universe::GetNumParticles() {
+    /**
+     * @brief Returns the number of particles.
+     */
     return u_num_particles;
 }
 
