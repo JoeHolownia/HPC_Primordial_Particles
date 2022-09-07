@@ -104,7 +104,7 @@ def run_animation(settings: Settings):
 
     # run animation
     ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
-    plt.show()
+    # plt.show()
 
     print("Saving animation to gif...")
     ani.save('../results/animation.gif', writer='Pillow', fps=30)
