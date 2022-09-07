@@ -1,16 +1,16 @@
-CFLAGS = -std=c++11 -pg -O0
+CFLAGS = -std=c++11 -pg -O0 -lm
 
 all: main.o universe.o ioparser.o
 	g++ main.o universe.o ioparser.o ${CFLAGS} -o particles
 
-main.o: main.cpp Universe.h IOParser.h
+main.o: main.cpp universe.h ioparser.h
 	g++ -c ${CFLAGS} main.cpp
 
-universe.o: Universe.cpp Universe.h Particle.h
-	g++ -c ${CFLAGS} Universe.cpp
+universe.o: universe.cpp universe.h particle.h
+	g++ -c ${CFLAGS} universe.cpp
 
-ioparser.o: IOParser.cpp IOParser.h Particle.h nlohmann/json.hpp
-	g++ -c ${CFLAGS} IOParser.cpp
+ioparser.o: ioparser.cpp ioparser.h particle.h nlohmann/json.hpp
+	g++ -c ${CFLAGS} ioparser.cpp
 
 clean:
 	rm *.o
