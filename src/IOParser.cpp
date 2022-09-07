@@ -2,7 +2,7 @@
 // Created by joeho on 13/08/2022.
 //
 
-#include "IOParser.h"
+#include "ioparser.h"
 using namespace std;
 
 IOParser::IOParser(string settings_fpath, string out_disp_fpath, string out_log_fpath) {

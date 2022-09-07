@@ -2,8 +2,8 @@
 // Created by joeho on 13/08/2022.
 //
 
-#include "Universe.h"
-#include "Particle.h"
+#include "universe.h"
+#include "particle.h"
 
 // DEFINE MACROS HERE!
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017

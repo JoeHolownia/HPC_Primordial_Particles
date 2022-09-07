@@ -1,6 +1,6 @@
 #include <cstring>
-#include "Universe.h"
-#include "IOParser.h"
+#include "universe.h"
+#include "ioparser.h"
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 

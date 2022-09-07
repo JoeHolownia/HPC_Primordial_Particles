@@ -11,7 +11,7 @@
 #include <cmath>
 #include <chrono>
 #include <iostream>
-#include "Particle.h"
+#include "particle.h"
 
 class Universe {
 public:

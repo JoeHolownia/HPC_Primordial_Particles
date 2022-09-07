@@ -7,7 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "Particle.h"
+#include "particle.h"
 
 struct Settings {
     int num_particles;
