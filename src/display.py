@@ -66,7 +66,6 @@ def read_binary_out_file(out_file_fp: str, time_steps: int, num_p: int) -> List[
 
     # read all states and their corresponding particle positions / colours  
     s_off = 0
-    print(fdata.shape)
     for _ in range(time_steps):
         xs = fdata[s_off: s_off + num_p]
         ys = fdata[s_off + num_p: s_off + 2 * num_p]
@@ -106,6 +105,8 @@ def run_animation(settings: Settings):
     # run animation
     ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
     plt.show()
+
+    print("Saving animation to gif...")
     ani.save('../results/animation.gif', writer='Pillow', fps=30)
 
 
