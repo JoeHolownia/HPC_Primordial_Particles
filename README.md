@@ -12,7 +12,7 @@ https://github.com/nagualdesign/Primordial-Particle-System
 
 USE:
 
-1. Ensure conda python is in the PATH, or you are in a conda python environment with matplotlib and numpy installed.
+1. Ensure conda Python3 is in the PATH, or you are in a conda Python3 environment with matplotlib and numpy installed.
 2. Modify the parameters in the settings.json file
 3. On windows, install mingw32 and add mingw32-make to the PATH, and then run 'mingw32-make all' in the src directory.
 3. On Linux, simply run 'make all' in the src directory.

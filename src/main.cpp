@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
     universe.Clean();
 
     // call Python to plot data 
-     std::string command = "python display.py";
+     std::string command = "python3 display.py";
      SystemCommandCall(command);
 
     return 0;
