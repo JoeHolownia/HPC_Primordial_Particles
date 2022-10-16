@@ -1,16 +1,19 @@
+MPICXX?=mpic++
 CFLAGS = -std=c++11 -O0 -lm
 
+default: all
+
 all: main.o universe.o ioparser.o
-	g++ main.o universe.o ioparser.o ${CFLAGS} -o particles
+	$(MPICXX) main.o universe.o ioparser.o ${CFLAGS} -o particles
 
 main.o: main.cpp universe.h ioparser.h
-	g++ -c ${CFLAGS} main.cpp
+	$(MPICXX) ${CFLAGS} -c main.cpp
 
 universe.o: universe.cpp universe.h particle.h
-	g++ -c ${CFLAGS} universe.cpp
+	$(MPICXX) ${CFLAGS} -c universe.cpp
 
 ioparser.o: ioparser.cpp ioparser.h particle.h nlohmann/json.hpp
-	g++ -c ${CFLAGS} ioparser.cpp
+	$(MPICXX) ${CFLAGS} -c ioparser.cpp
 
 clean:
 	rm *.o
