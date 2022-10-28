@@ -12,6 +12,9 @@
 #include <chrono>
 #include <iostream>
 #include "particle.h"
+#include <list>
+
+#define COMM_BUFFER_SIZE 2000
 
 class Universe {
 public:
@@ -21,10 +24,6 @@ public:
     void InitState();
     void Step();
     void Clean();
-
-    // getters and setters
-    Particle* GetCurrentState();
-    int GetNumParticles();
 
 private:
     int u_num_particles;  // number of particles
@@ -43,5 +42,37 @@ private:
     std::mt19937 u_rand_gen;  // seed for random number generation
 };
 
+class Miniverse {
+public:
+
+    // constructor and core functions
+    Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, 
+              int num_particles, u_settings_type universe);
+    void InitState();
+    void Step();
+    void Clean();
+
+    // getters and setters
+    particle_type* GetCurrentState();
+    int GetNumParticles();
+
+private:
+    int m_num_proc; // MPI num procs
+    int m_rank; // MPI rank
+    box_coord_type m_box; // box coords
+    int m_width;
+    int m_height;
+    MPI_Comm m_grid_comm; // MPI grid communicator
+    int m_num_particles;
+    Universe m_universe; // properties of overall universe
+
+    // particles for miniverse as a doubly linked list
+    std::list<particle_type> m_particle_list;
+
+    // instantiate grid communication buffers
+    particle_t send_buffer[4][COMM_BUFFER_SIZE];
+    particle_t recv_buffer[4][COMM_BUFFER_SIZE];
+
+};
 
 #endif //PROJECT_UNIVERSE_H

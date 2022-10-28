@@ -4,6 +4,7 @@
 
 #include "universe.h"
 #include "particle.h"
+#include <mpi.h>
 
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
 #define PI 3.141592653589793115997963468544185161590576171875
@@ -23,26 +24,6 @@ int sign(int x) {
         return 1;
     }
 }
-
-int* permuted_array(int n) {
-    /**
-     * @brief creates an array filled with a random permutation of values 0...n.
-     * 
-     */
-
-    int* p_array = new int[n];
-
-    // fill array
-    for (int i = 0; i < n; i++) {
-        p_array[i] = i;
-    }
-
-    // permute array
-    std::random_shuffle(p_array, p_array + n);
-
-    return p_array;
-}
-
 
 Colour get_colour(int n, int n_close) {
     /**
@@ -73,7 +54,7 @@ Colour get_colour(int n, int n_close) {
 
 Universe::Universe(int num_particles, int width, int height, float density, float a, float b, float g) {
     /**
-     * @brief Universe constructor. 
+     * @brief Universe constructor, describes the properties of the overall system. 
      */
 
     // initialize universe parameters
@@ -91,46 +72,84 @@ Universe::Universe(int num_particles, int width, int height, float density, floa
     u_radius_sqrd = u_radius * u_radius;
     u_close_radius = u_radius / CLOSE_RADIUS_RATIO;
     u_close_radius_sqrd = u_close_radius * u_close_radius;
+}
+
+
+Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, int num_particles, Universe universe) {
+    /**
+     * @brief Miniverse constructor, a local square grid cell of the universe managing its own set of particles independently. 
+     */
+
+    // initialize miniverse parameters
+    m_num_proc = num_proc;
+    m_box = box_coords;
+    m_width = width;
+    m_height = height;
+    m_grid_comm = grid_comm;
+    m_num_particles = num_particles;
+    m_universe = universe;
+
+    // unpack universe settings
+    
 
     // initialise the start state using the given parameters
     InitState();
 }
 
-void::Universe::InitState() {
+void::Miniverse::InitState() {
     /**
-     * @brief Place all particles randomly in the Universe box, and determine radius and velocity
-     * based on density and box dimensions.
+     * @brief Place all particles randomly in the local miniverse box.
      */
 
-    // instantiate state with particles
-    u_state = new Particle[u_num_particles];
-
     // get seeded uniform random distribution
-    u_rand_gen.seed((unsigned int)time(0));
-    // u_rand_gen.seed(100); // FOR TIMING!
+    // m_universe.u_rand_gen.seed((unsigned int)time(0));
+    m_universe.u_rand_gen.seed(100); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
-    for (int i = 0; i < u_num_particles; i++) {
-        Particle& p = u_state[i];
+    for (int i = 0; i < m_num_particles; i++) {
+        Particle p;
         p.colour = green;
-        p.x = uniform_rand(u_rand_gen) * u_width;
-        p.y = uniform_rand(u_rand_gen) * u_height;
-        p.heading = uniform_rand(u_rand_gen) * TAU;
+
+        // TODO: ENSURE THIS IS WITHIN THE BOUNDS OF OUR BOX!!!
+        p.x = m_box.x0 + uniform_rand(m_universe.u_rand_gen) * m_width;
+        p.y = m_box.y0 + uniform_rand(m_universe.u_rand_gen) * m_height;
+
+        // InitParticleList(&particlesList);
+        // int i, j, k, dir;
+        // bool bFlag, hasBigPart;
+
+        // // Initiate particles.
+        // for(i = 0; i < lNumParts; i++)
+        // {
+        //     float x = FloatRand(localBox.x0, localBox.x1);
+        //     float y = FloatRand(localBox.y0, localBox.y1);
+        //     float r = FloatRand(0, max_vel);
+        //     float theta = FloatRand(0, 2 * PI);
+        //     float vx = r * cos(theta);
+        //     float vy = r * sin(theta);
+        //     InsertPartListFront(&particlesList, CreateParticleListItem(x, y, vx, vy));
+        //     lTemp += (double)(r * r) / 2;   // Here r = v = velocity.
+        // }
+        p.heading = uniform_rand(m_universe.u_rand_gen) * TAU;
+
+        // add particle to linked list
+        m_particle_list.push_front(p);
     }
 }
 
-void Universe::Step() {
+void Miniverse::Step() {
     /**
      * @brief Perform a time step update of the Universe simulation.
      * 
      */
 
     // O(n^2) pairwise calculation
-    for (int i = 0; i < u_num_particles; i++) {
+    for (int i = 0; i < m_num_particles; i++) {
 
         // get particle
         Particle &p1 = u_state[i];
+        Particle p1_new;
 
         // counts of particles within left and right semi-circle
         int l = 0;
@@ -215,27 +234,27 @@ void Universe::Step() {
     }
 }
 
-void Universe::Clean() {
+void Miniverse::Clean() {
     /**
-     * @brief Clear memory for all particles, i.e. clear the state.
+     * @brief Clear memory for the particle list.
      * 
      */
 
-    delete[] u_state; 
+    m_particle_list.clear; 
 }
 
-Particle* Universe::GetCurrentState() {
+std::list<particle_type> Miniverse::GetParticleList() {
     /**
      * @brief Returns the current state of the universe.
      * 
      */
-    return u_state;
+    return m_particle_list;
 }
 
-int Universe::GetNumParticles() {
+int Miniverse::GetNumParticles() {
     /**
      * @brief Returns the number of particles.
      */
-    return u_num_particles;
+    return m_num_particles;
 }
 

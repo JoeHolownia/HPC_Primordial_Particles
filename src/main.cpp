@@ -2,29 +2,16 @@
 #include "universe.h"
 #include "ioparser.h"
 #include "nlohmann/json.hpp"
+#include "particle.h"
 #include <mpi.h>
 using json = nlohmann::json;
 
+#define UP 0
+#define DOWN 1
+#define LEFT 2
+#define RIGHT 3
+
 void CalculateGridLayout(int nProcs, int *gridRows, int *gridCols); // PLEASE MOVE THIS TO A SEPERATE HEADER FILE, MAYBE MPI HELPERS??
-
-struct cord {
-    float x0;
-    float x1;
-    float y0;
-    float y1;
-} ;
-
-// struct part_cord {
-//     float x;
-//     float y;
-//     float vx;
-//     float vy;
-// } ;
-
-typedef struct cord cord_t ;
-// typedef struct part_cord pcord_t ;
-
-// MOVE THE ABOVE INTO AN APPROPRIATE HEADER FILE!!!! DON'T MAKE THIS CODE COMPLETELY SHIT PLEASE!!!
 
 void SystemCommandCall(std::string command) {
     /**
@@ -77,15 +64,13 @@ struct Timer {
   }
 };
 
-void calculate_grid_layout(int nProcs, int *gridRows, int *gridCols)
+void calculate_grid_layout(int num_procs, int *grid_rows, int *grid_cols)
 {
     int i;
-    for (i = sqrt(nProcs); i > 0; i--)
-    {
-        if (nProcs % i == 0)
-        {
-            *gridRows = i;
-            *gridCols = nProcs / i;
+    for (i = sqrt(num_procs); i > 0; i--) {
+        if (num_procs % i == 0) {
+            *grid_rows = i;
+            *grid_cols = num_procs / i;
             return;
         }
     }
@@ -93,20 +78,25 @@ void calculate_grid_layout(int nProcs, int *gridRows, int *gridCols)
 
 int main(int argc, char *argv[]) {
 
-    // initalise MPI
+	// initalise MPI
     int rank, num_procs;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-	// create MPI custom type in order to ease the communication. // TODO: MODIFY THIS TO WORK FOR OUR PARTICLES
-    MPI_Datatype mpi_particle_type, oldTypes[2] = {MPI_FLOAT, MPI_INT};
-    int blockcounts[2] = {4, 1};
-    MPI_Aint offsets[2], extent;
+	// create MPI particle type // TODO: may need to compact this to just coords? but for convenience encode the whole particle.
+	MPI_Datatype particle_types[4] = {MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_INT};
+    MPI_Datatype mpi_particle_type;
+    int block_counts[4] = {4, 4, 4, 1};
+    MPI_Aint offsets[4], extent;
     offsets[0] = 0;
     MPI_Type_extent(MPI_FLOAT, &extent);
     offsets[1] = 4 * extent;
-    MPI_Type_struct(2, blockcounts, offsets, oldTypes, &mpi_particle_type);
+	MPI_Type_extent(MPI_FLOAT, &extent);
+    offsets[2] = 4 * extent;
+	MPI_Type_extent(MPI_FLOAT, &extent);
+    offsets[3] = 4 * extent;
+    MPI_Type_struct(4, block_counts, offsets, particle_types, &mpi_particle_type);
     MPI_Type_commit(&mpi_particle_type);
 
 	// global universe variables
@@ -133,7 +123,7 @@ int main(int argc, char *argv[]) {
     }
 
     // init MPI grid communicator
-    MPI_Comm gridComm;
+    MPI_Comm grid_comm;
     MPI_Request request[4];
     MPI_Status status[4];  // I BELIEVE 4 IS BECAUSE OF THE left, top, right, down --> if we do diagonal this needs to be 8
 
@@ -146,27 +136,30 @@ int main(int argc, char *argv[]) {
     dims[1] = grid_cols;
     MPI_Dims_create(num_procs, 2, dims); 
 
-	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &gridComm);
-    MPI_Cart_get(gridComm, 2, dims, periods, my_coords); // myCoords[0] = row, myCoords[0] = col.
+	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &grid_comm);
+    MPI_Cart_get(grid_comm, 2, dims, periods, my_coords); // myCoords[0] = row, myCoords[0] = col.
 
-    //calculate the local box dimension.
-	cord_t local_box;
+  	// calculate the local box dimension.
+	  box_coord_type local_box;
     int local_box_width = global_width / grid_cols;
     int local_box_height = global_height / grid_rows;
-    local_box.x0 = myCoords[1] * local_box_width;
-    local_box.y0 = myCoords[0] * local_box_height;
-    local_box.x1 = (myCoords[1] == gridCols-1) ? gBoxWidth : (myCoords[1]+1) * lBoxWidth;
-    local_box.y1 = (myCoords[0] == gridRows-1) ? gBoxHeight : (myCoords[0]+1) * lBoxHeight;
+    local_box.x0 = my_coords[1] * local_box_width;
+    local_box.y0 = my_coords[0] * local_box_height;
+    local_box.x1 = (my_coords[1] == grid_cols - 1) ? global_width : (my_coords[1] + 1) * local_box_width;
+    local_box.y1 = (my_coords[0] == grid_rows - 1) ? global_height : (my_coords[0] + 1) * local_box_height;
 
-	// TODO: HERE WE ARE!!!!! ==============================^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // get the rank of neighbor processors.
+    MPI_Cart_shift(grid_comm, 0, 1, &neighbours[DOWN], &neighbours[UP]);
+    MPI_Cart_shift(grid_comm, 1, 1, &neighbours[LEFT], &neighbours[RIGHT]);
 
-    //Get the rank of neighbor processors.
-    MPI_Cart_shift(gridComm, 0, 1, &neighbours[DOWN], &neighbours[UP]);
-    MPI_Cart_shift(gridComm, 1, 1, &neighbours[LEFT], &neighbours[RIGHT]);
-
-	// THIS NEED STO BE CHANGED TO THE INSTANTIATION OF EACH MINIVERSE
-    // instantiate universe
-    Universe universe(num_particles, width, height, density, alpha, beta, gamma);
+	// assign particles to each grid cell
+	int local_num_particles;
+	if (rank == num_procs - 1) {
+		// assign the left over particles to the final process (meaning the num particles in the last proc >= all others)
+      local_num_particles = global_num_particles - (rank * (global_num_particles / num_procs));
+  	} else {
+      local_num_particles = global_num_particles / num_procs;
+  	}
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     if (rank == 0) {
@@ -174,25 +167,52 @@ int main(int argc, char *argv[]) {
 		io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }
 
+	// instantiate universe (contains properties to be used by each miniverse)
+  	Universe universe(global_num_particles, global_width, global_height, density, alpha, beta, gamma);
+
+  	// instantiate miniverse, run by individual process
+  	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
+
+	printf("Hello from process %d out of %d\n", rank, num_procs);
+
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
+
+		// need to run miniverse internal step, then sharing step, then position update step
+
+		/*
+		//Send neighbor's data to the corresponding neighbor.
+        for(j = 0; j < 4; j++){
+          MPI_Isend(sendBuffer[j], sendCounts[j], mpiPartType, neighbours[j], 0, gridComm, &(request[j]));
+        }
+        //Receive own data from neighbor.
+        for(j = 0; j < 4; j++){
+            MPI_Recv(recvBuffer[j], COMM_BUFFER_SIZE, mpiPartType, MPI_ANY_SOURCE, 0, gridComm, &(status[j]));
+        }
+        MPI_Waitall(4, request, MPI_STATUS_IGNORE); //Wait for non-blocking send completion.
+		*/
+
 		// Timer text_time;
-		universe.Step();
-		io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+		// universe.Step();
+
+		// write output state to file
+		// io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }
 
     // output average time
     // timeAvg = Totaltime / (float) time_steps;
     // std::cout<<timeAvg<<"ms\n";
 
-    // clean up memory
-    io_parser.CloseOutFile();
-    universe.Clean();
+	// clean particles
+	miniverse.Clean();
 
     if (rank == 0) {
+		// close out file
+		io_parser.CloseOutFile();
+
     	// call Python to plot data 
-		std::string command = "python3 display.py";
-		SystemCommandCall(command);
+		// std::string command = "python3 display.py";
+		// SystemCommandCall(command);
     }
 
     return 0;
