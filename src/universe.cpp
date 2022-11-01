@@ -151,8 +151,8 @@ void Miniverse::Step() {
 
     // Step 1: determine interactions between particles within own grid cell
     // O((n/p)^2) pairwise calculation
-    particle_type* p1 =  m_particle_list.front();
-    while (p1 != NULL) {
+    //particle_type* p1 =  m_particle_list.front();
+    for (particle_type* &p1 : m_particle_list) {
 
         // new particle?
         // Particle p1_new;
@@ -163,8 +163,8 @@ void Miniverse::Step() {
         int n_close = 0;
         
         // interactions
-        particle_type* p2 = m_particle_list.front();
-        while (p2 != NULL) {
+        //particle_type* p2 = m_particle_list.front();
+        for (particle_type* &p2 : m_particle_list) {
 
             // exclude self from check
             if (p1->id == p2->id) {
@@ -214,6 +214,10 @@ void Miniverse::Step() {
 
         // store n in particle!!
 
+        // TODO: ALSO HERE ADD PARTICLE TO SENDBUFFER LISTS IF IT IS IN RADIUS OF GRID CELL EDGE!
+
+        // TODO: THE FOLLOWING UPDATES NEED TO BE MOVED TO A LATER FINAL STEP ONCE ALL CHECKS HAVE BEEN DONE!!!
+
         // set colour
         p1->colour = get_colour(n, n_close);
 
@@ -239,7 +243,24 @@ void Miniverse::Step() {
         }
     }
 
-    // Step 2: 
+    // Step 2: send and receive particles which were in contact with walls, and process interactions between them, adding
+    // count to n (may need to faff with some pointer stuff here for updating particles between lists)
+
+        /*
+    //Send neighbor's data to the corresponding neighbor.
+    for(j = 0; j < 4; j++){
+        MPI_Isend(sendBuffer[j], sendCounts[j], mpiPartType, neighbours[j], 0, gridComm, &(request[j]));
+    }
+    //Receive own data from neighbor.
+    for(j = 0; j < 4; j++){
+        MPI_Recv(recvBuffer[j], COMM_BUFFER_SIZE, mpiPartType, MPI_ANY_SOURCE, 0, gridComm, &(status[j]));
+    }
+    MPI_Waitall(4, request, MPI_STATUS_IGNORE); //Wait for non-blocking send completion.
+    */
+
+    // Step 3: now we have final counts, update colours velocities and headings, for all particles and then update their
+    // positions, passing to other processes if they go outside of the local box.
+
 
 
 }

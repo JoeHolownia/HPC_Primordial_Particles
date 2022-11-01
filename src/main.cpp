@@ -191,27 +191,19 @@ int main(int argc, char *argv[]) {
   	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
 
     // run simulation for all time steps
+	time_steps = 1;
     for (int i = 0; i < time_steps; i++) {
 
 		// need to run miniverse internal step, then sharing step, then position update step
+		miniverse.Step();
 
-		/*
-		//Send neighbor's data to the corresponding neighbor.
-        for(j = 0; j < 4; j++){
-          MPI_Isend(sendBuffer[j], sendCounts[j], mpiPartType, neighbours[j], 0, gridComm, &(request[j]));
-        }
-        //Receive own data from neighbor.
-        for(j = 0; j < 4; j++){
-            MPI_Recv(recvBuffer[j], COMM_BUFFER_SIZE, mpiPartType, MPI_ANY_SOURCE, 0, gridComm, &(status[j]));
-        }
-        MPI_Waitall(4, request, MPI_STATUS_IGNORE); //Wait for non-blocking send completion.
-		*/
+		// TODO: THIS!!!
+		if (rank == 0) {
+			// get all particles from all miniverses
 
-		// Timer text_time;
-		// universe.Step();
-
-		// write output state to file
-		// io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+			// write output state to file
+			// io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+		}
     }
 
     // output average time
@@ -222,7 +214,7 @@ int main(int argc, char *argv[]) {
 	miniverse.Clean();
   	delete universe;
 
-  if (rank == 0) {
+  	if (rank == 0) {
 		// close out file
 		io_parse_obj -> CloseOutFile();
 		delete io_parse_obj;
@@ -231,6 +223,8 @@ int main(int argc, char *argv[]) {
 		// std::string command = "python3 display.py";
 		// SystemCommandCall(command);
     }
+
+	printf("I HAVE MADE IT TO THE END OF MY JOURNEY!!!\n");
 
 	// end MPI
 	MPI_Type_free(&mpi_particle_type);
