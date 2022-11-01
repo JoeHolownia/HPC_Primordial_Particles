@@ -104,9 +104,10 @@ int main(int argc, char *argv[]) {
 	float density, alpha, beta, gamma;
 
 	// instantiate io parser
-	IOParser io_parser;
-    if (rank == 0) {
-		io_parser("settings.json", "out_display.bin", "out_log.bin");
+	IOParser* io_parse_obj;
+  	if (rank == 0) {
+		io_parse_obj = new IOParser("settings.json", "out_display.bin", "out_log.bin");
+		//*io_parser_ref = io_parse_obj;
 
 		// read in json data: TODO: THIS IS PROBLEMATIC ATM, EITHER NEED TO STORE THESE GLOBALLY OR READ IN AND THEN DISTRIBUTE TO EACH PROCESS
 		std::ifstream json_settings_file("settings.json");
@@ -120,7 +121,21 @@ int main(int argc, char *argv[]) {
 		beta = settings["beta"].get<float>();
 		gamma = settings["gamma"].get<float>();
 		time_steps = settings["time_steps"].get<int>();
+
+		//printf("Yo I'm proc: %d and here is my Global Data - Num Particles: %d, Height: %d, Width: %d\n", rank, global_num_particles, global_height, global_width);
     }
+
+	// broadcast global universe vars to all processes
+	MPI_Bcast(&global_num_particles, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&global_width, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&global_height, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&density, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&alpha, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&beta, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&gamma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&time_steps, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	printf("Yo I'm proc: %d and here is my Global Data - Num Particles: %d, Height: %d, Width: %d\n", rank, global_num_particles, global_height, global_width);
 
     // init MPI grid communicator
     MPI_Comm grid_comm;
@@ -128,7 +143,7 @@ int main(int argc, char *argv[]) {
     MPI_Status status[4];  // I BELIEVE 4 IS BECAUSE OF THE left, top, right, down --> if we do diagonal this needs to be 8
 
 	// init grid variables
-    int grid_rows, grid_cols, reorder = 1, neighbours[4], send_counts[4]={0}, dims[2], my_coords[2], periods[2] = {1, 1};
+    int grid_rows, grid_cols, reorder = 1, neighbours[4], send_counts[4]={0, 0, 0, 0}, dims[2], my_coords[2], periods[2] = {1, 1};
 
 	// create a division of processes in 2-D cartesian grid.
 	calculate_grid_layout(num_procs, &grid_rows, &grid_cols);
@@ -140,7 +155,7 @@ int main(int argc, char *argv[]) {
     MPI_Cart_get(grid_comm, 2, dims, periods, my_coords); // myCoords[0] = row, myCoords[0] = col.
 
   	// calculate the local box dimension.
-	  box_coord_type local_box;
+	box_coord_type local_box;
     int local_box_width = global_width / grid_cols;
     int local_box_height = global_height / grid_rows;
     local_box.x0 = my_coords[1] * local_box_width;
@@ -156,27 +171,33 @@ int main(int argc, char *argv[]) {
 	int local_num_particles;
 	if (rank == num_procs - 1) {
 		// assign the left over particles to the final process (meaning the num particles in the last proc >= all others)
-      local_num_particles = global_num_particles - (rank * (global_num_particles / num_procs));
+    	local_num_particles = global_num_particles - (rank * (global_num_particles / num_procs));
   	} else {
-      local_num_particles = global_num_particles / num_procs;
+      	local_num_particles = global_num_particles / num_procs;
   	}
 
-    // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
-    if (rank == 0) {
-		io_parser.OpenOutFile();
-		io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
-    }
-
 	// instantiate universe (contains properties to be used by each miniverse)
-  	Universe universe(global_num_particles, global_width, global_height, density, alpha, beta, gamma);
+  	Universe* universe = new Universe(global_num_particles, global_width, global_height, density, alpha, beta, gamma);
+
+	// instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
+    if (rank == 0) {
+		io_parse_obj -> OpenOutFile();
+		//io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+    }
 
   	// instantiate miniverse, run by individual process
   	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
 
-	printf("Hello from process %d out of %d\n", rank, num_procs);
+	printf("Hello from process %d out of %d, I have Height: %d, Width: %d, Local Num Parts: %d, x0: %lf, x1: %lf, y0: %lf, y1: %lf\n", 
+	rank, num_procs, local_box_width, local_box_height, local_num_particles, local_box.x0, local_box.x1, local_box.y0, local_box.y1);
 
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
+
+		// reset send counts for this iteration
+		for(int j = 0; j < 4; j++) {
+            send_counts[j] = 0;
+        }
 
 		// need to run miniverse internal step, then sharing step, then position update step
 
@@ -205,15 +226,19 @@ int main(int argc, char *argv[]) {
 
 	// clean particles
 	miniverse.Clean();
+  	delete universe;
 
-    if (rank == 0) {
+  if (rank == 0) {
 		// close out file
-		io_parser.CloseOutFile();
+		io_parse_obj -> CloseOutFile();
+		delete io_parse_obj;
 
     	// call Python to plot data 
 		// std::string command = "python3 display.py";
 		// SystemCommandCall(command);
     }
 
+	// end MPI
+    MPI_Finalize();
     return 0;
 }

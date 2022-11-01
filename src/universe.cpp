@@ -75,7 +75,7 @@ Universe::Universe(int num_particles, int width, int height, float density, floa
 }
 
 
-Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, int num_particles, Universe universe) {
+Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, int num_particles, Universe* universe) {
     /**
      * @brief Miniverse constructor, a local square grid cell of the universe managing its own set of particles independently. 
      */
@@ -103,7 +103,7 @@ void::Miniverse::InitState() {
 
     // get seeded uniform random distribution
     // m_universe.u_rand_gen.seed((unsigned int)time(0));
-    m_universe.u_rand_gen.seed(100); // FOR TIMING!
+    m_universe -> u_rand_gen.seed(100); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -112,8 +112,8 @@ void::Miniverse::InitState() {
         p.colour = green;
 
         // TODO: ENSURE THIS IS WITHIN THE BOUNDS OF OUR BOX!!!
-        p.x = m_box.x0 + uniform_rand(m_universe.u_rand_gen) * m_width;
-        p.y = m_box.y0 + uniform_rand(m_universe.u_rand_gen) * m_height;
+        p.x = m_box.x0 + uniform_rand(m_universe -> u_rand_gen) * m_width;
+        p.y = m_box.y0 + uniform_rand(m_universe -> u_rand_gen) * m_height;
 
         // InitParticleList(&particlesList);
         // int i, j, k, dir;
@@ -131,108 +131,108 @@ void::Miniverse::InitState() {
         //     InsertPartListFront(&particlesList, CreateParticleListItem(x, y, vx, vy));
         //     lTemp += (double)(r * r) / 2;   // Here r = v = velocity.
         // }
-        p.heading = uniform_rand(m_universe.u_rand_gen) * TAU;
+        p.heading = uniform_rand(m_universe -> u_rand_gen) * TAU;
 
         // add particle to linked list
         m_particle_list.push_front(p);
     }
 }
 
-void Miniverse::Step() {
-    /**
-     * @brief Perform a time step update of the Universe simulation.
-     * 
-     */
+// void Miniverse::Step() {
+//     /**
+//      * @brief Perform a time step update of the Universe simulation.
+//      * 
+//      */
 
-    // O(n^2) pairwise calculation
-    for (int i = 0; i < m_num_particles; i++) {
+//     // O(n^2) pairwise calculation
+//     for (int i = 0; i < m_num_particles; i++) {
 
-        // get particle
-        Particle &p1 = u_state[i];
-        Particle p1_new;
+//         // get particle
+//         Particle &p1 = u_state[i];
+//         Particle p1_new;
 
-        // counts of particles within left and right semi-circle
-        int l = 0;
-        int r = 0;
-        int n_close = 0;
+//         // counts of particles within left and right semi-circle
+//         int l = 0;
+//         int r = 0;
+//         int n_close = 0;
         
-        // interactions
-        for (int j = 0; j < u_num_particles; j++) {
+//         // interactions
+//         for (int j = 0; j < u_num_particles; j++) {
 
-            // exclude self from check
-            if (i == j) {
-                continue;
-            }
+//             // exclude self from check
+//             if (i == j) {
+//                 continue;
+//             }
 
-            // other particle
-            Particle &p2 = u_state[j];
+//             // other particle
+//             Particle &p2 = u_state[j];
 
-            // get deltas
-            float dx = p2.x - p1.x;
-            float dy = p2.y - p1.y;
+//             // get deltas
+//             float dx = p2.x - p1.x;
+//             float dy = p2.y - p1.y;
 
-            // wrap deltas, as mirror image about box mid-point
-            if (dx > u_width * 0.5f) {
-                dx -= u_width;
-            } else if (dx < -u_width * 0.5f) {
-                dx += u_width;
-            }
-            if (dy > u_height * 0.5f) {
-                dy -= u_height;
-            } else if (dy < -u_height * 0.5f) {
-                dy += u_height;
-            }
+//             // wrap deltas, as mirror image about box mid-point
+//             if (dx > u_width * 0.5f) {
+//                 dx -= u_width;
+//             } else if (dx < -u_width * 0.5f) {
+//                 dx += u_width;
+//             }
+//             if (dy > u_height * 0.5f) {
+//                 dy -= u_height;
+//             } else if (dy < -u_height * 0.5f) {
+//                 dy += u_height;
+//             }
 
-            // first check if particle in square (simpler calculation)
-            if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
+//             // first check if particle in square (simpler calculation)
+//             if (abs(dx) <= u_radius && abs(dy) <= u_radius) {
 
-                // check if particle in u_radius circle
-                float lhs = dx * dx + dy * dy;
-                if (lhs <= u_radius_sqrd) {
+//                 // check if particle in u_radius circle
+//                 float lhs = dx * dx + dy * dy;
+//                 if (lhs <= u_radius_sqrd) {
 
-                    // check if point is to the left or right of heading to determine the points in each half
-                    if (dx * sin(p1.heading) - dy * cos(p1.heading) < 0) {
-                        r++;
-                    }  else  {
-                        l++;
-                    }
+//                     // check if point is to the left or right of heading to determine the points in each half
+//                     if (dx * sin(p1.heading) - dy * cos(p1.heading) < 0) {
+//                         r++;
+//                     }  else  {
+//                         l++;
+//                     }
 
-                    // also check if particle in smaller radius circle, just for colouring
-                    if (lhs < u_close_radius_sqrd) {
-                        n_close++;
-                    }
-                }
-            }
-        }
+//                     // also check if particle in smaller radius circle, just for colouring
+//                     if (lhs < u_close_radius_sqrd) {
+//                         n_close++;
+//                     }
+//                 }
+//             }
+//         }
 
-        // total num within circle
-        int n = l + r;
+//         // total num within circle
+//         int n = l + r;
 
-        // set colour
-        p1.colour = get_colour(n, n_close);
+//         // set colour
+//         p1.colour = get_colour(n, n_close);
 
-        // set change in heading direction
-        p1.heading += u_a + u_b * n * sign(r - l);
+//         // set change in heading direction
+//         p1.heading += u_a + u_b * n * sign(r - l);
 
-        // apply force to get new x and y
-        p1.x += cos(p1.heading) * u_velocity;
-        p1.y += sin(p1.heading) * u_velocity;
+//         // apply force to get new x and y
+//         p1.x += cos(p1.heading) * u_velocity;
+//         p1.y += sin(p1.heading) * u_velocity;
 
-        // wrap x
-        if (p1.x < 0) {
-            p1.x += u_width;
-        } else if (p1.x >= u_width) {
-            p1.x -= u_width;
-        }
+//         // wrap x
+//         if (p1.x < 0) {
+//             p1.x += u_width;
+//         } else if (p1.x >= u_width) {
+//             p1.x -= u_width;
+//         }
 
-        // wrap y
-        if (p1.y < 0) {
-            p1.y += u_height;
-        } else if (p1.y >= u_height) {
-            p1.y -= u_height;
-        }
-    }
-}
+//         // wrap y
+//         if (p1.y < 0) {
+//             p1.y += u_height;
+//         } else if (p1.y >= u_height) {
+//             p1.y -= u_height;
+//         }
+//     }
+// }
 
 void Miniverse::Clean() {
     /**
@@ -240,7 +240,7 @@ void Miniverse::Clean() {
      * 
      */
 
-    m_particle_list.clear; 
+    m_particle_list.clear(); 
 }
 
 std::list<particle_type> Miniverse::GetParticleList() {
