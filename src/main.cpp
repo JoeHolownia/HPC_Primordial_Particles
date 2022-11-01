@@ -84,19 +84,21 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-	// create MPI particle type // TODO: may need to compact this to just coords? but for convenience encode the whole particle.
-	MPI_Datatype particle_types[4] = {MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_INT};
+	// create MPI particle type: id/x_coord/y_coord/heading/colour
+	MPI_Datatype particle_types[5] = {MPI_INT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_INT};
     MPI_Datatype mpi_particle_type;
-    int block_counts[4] = {4, 4, 4, 1};
-    MPI_Aint offsets[4], extent;
+    int block_counts[5] = {1, 4, 4, 4, 1};
+    MPI_Aint offsets[5], extent;
     offsets[0] = 0;
+	MPI_Type_extent(MPI_INT, &extent);
+    offsets[1] = 1 * extent;
     MPI_Type_extent(MPI_FLOAT, &extent);
-    offsets[1] = 4 * extent;
-	MPI_Type_extent(MPI_FLOAT, &extent);
     offsets[2] = 4 * extent;
 	MPI_Type_extent(MPI_FLOAT, &extent);
     offsets[3] = 4 * extent;
-    MPI_Type_struct(4, block_counts, offsets, particle_types, &mpi_particle_type);
+	MPI_Type_extent(MPI_FLOAT, &extent);
+    offsets[4] = 4 * extent;
+    MPI_Type_struct(5, block_counts, offsets, particle_types, &mpi_particle_type);
     MPI_Type_commit(&mpi_particle_type);
 
 	// global universe variables
@@ -143,7 +145,7 @@ int main(int argc, char *argv[]) {
     MPI_Status status[4];  // I BELIEVE 4 IS BECAUSE OF THE left, top, right, down --> if we do diagonal this needs to be 8
 
 	// init grid variables
-    int grid_rows, grid_cols, reorder = 1, neighbours[4], send_counts[4]={0, 0, 0, 0}, dims[2], my_coords[2], periods[2] = {1, 1};
+    int grid_rows, grid_cols, reorder = 1, neighbours[4], dims[2], my_coords[2], periods[2] = {1, 1};
 
 	// create a division of processes in 2-D cartesian grid.
 	calculate_grid_layout(num_procs, &grid_rows, &grid_cols);
@@ -188,16 +190,8 @@ int main(int argc, char *argv[]) {
   	// instantiate miniverse, run by individual process
   	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
 
-	printf("Hello from process %d out of %d, I have Height: %d, Width: %d, Local Num Parts: %d, x0: %lf, x1: %lf, y0: %lf, y1: %lf\n", 
-	rank, num_procs, local_box_width, local_box_height, local_num_particles, local_box.x0, local_box.x1, local_box.y0, local_box.y1);
-
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
-
-		// reset send counts for this iteration
-		for(int j = 0; j < 4; j++) {
-            send_counts[j] = 0;
-        }
 
 		// need to run miniverse internal step, then sharing step, then position update step
 
@@ -239,6 +233,7 @@ int main(int argc, char *argv[]) {
     }
 
 	// end MPI
+	MPI_Type_free(&mpi_particle_type);
     MPI_Finalize();
     return 0;
 }

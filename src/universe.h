@@ -35,7 +35,6 @@ public:
     float u_radius_sqrd;
     float u_close_radius_sqrd;
     float u_velocity;  // velocity
-    Particle *u_state;  // universe state, i.e. array of all particles
     std::mt19937 u_rand_gen;  // seed for random number generation
 };
 
@@ -50,7 +49,7 @@ public:
     void InitState();
     void Step();
     void Clean();
-    std::list<particle_type> GetParticleList();
+    std::list<particle_type*> GetParticleList();
 
     // getters and setters
     particle_type* GetCurrentState();
@@ -66,8 +65,24 @@ private:
     int m_num_particles;
     Universe* m_universe; // properties of overall universe
 
-    // particles for miniverse as a doubly linked list
-    std::list<particle_type> m_particle_list;
+    int m_send_counts[4]={0, 0, 0, 0};
+
+    // version of universe properties for convenience
+    int u_num_particles;
+    int u_width;
+    int u_height;
+    float density;
+    float alpha;
+    float beta;
+    float gamma;
+    float radius;
+    float velocity;
+    float radius_sqrd;
+    float close_radius;
+    float close_radius_sqrd;
+
+    // particles for miniverse as a doubly linked list of pointers to particles
+    std::list<particle_type*> m_particle_list;
 
     // instantiate grid communication buffers
     particle_type send_buffer[4][COMM_BUFFER_SIZE];
