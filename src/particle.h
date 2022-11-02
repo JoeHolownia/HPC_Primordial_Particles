@@ -14,7 +14,10 @@ enum Colour {
 };
 
 struct Particle {
-    int id;
+    int id;  // unique particle id
+    int l;  // left neighbour counts
+    int r;  // right neighbour counts
+    int n_close;  // close neighbour counts
     float x, y;  // x and y coordinates
     float heading;  // direction particle is facing (+ is to the right, - to the left)
     Colour colour;  // current colour

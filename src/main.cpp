@@ -88,10 +88,11 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
 	// create MPI particle type: id/x_coord/y_coord/heading/colour
-	MPI_Datatype particle_types[5] = {MPI_INT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_INT};
+	int num_part_fields = 5;
+	MPI_Datatype particle_types[num_part_fields] = {MPI_INT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_INT};
     MPI_Datatype mpi_particle_type;
-    int block_counts[5] = {1, 4, 4, 4, 1};
-    MPI_Aint offsets[5], extent;
+    int block_counts[num_part_fields] = {1, 4, 4, 4, 1};
+    MPI_Aint offsets[num_part_fields], extent;
     offsets[0] = 0;
 	MPI_Type_extent(MPI_INT, &extent);
     offsets[1] = 1 * extent;
@@ -101,7 +102,7 @@ int main(int argc, char *argv[]) {
     offsets[3] = 4 * extent;
 	MPI_Type_extent(MPI_FLOAT, &extent);
     offsets[4] = 4 * extent;
-    MPI_Type_struct(5, block_counts, offsets, particle_types, &mpi_particle_type);
+    MPI_Type_struct(num_part_fields, block_counts, offsets, particle_types, &mpi_particle_type);
     MPI_Type_commit(&mpi_particle_type);
 
 	// global universe variables

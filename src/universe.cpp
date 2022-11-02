@@ -164,19 +164,17 @@ void Miniverse::Step() {
 
     // Step 1: determine interactions between particles within own grid cell
     // O((n/p)^2) pairwise calculation
-    //particle_type* p1 =  m_particle_list.front();
+    
+    // TODO: THIS IS WHERE A PRAGMA FOR WOULD GO FOR OPENMP!!!
     for (particle_type* &p1 : m_particle_list) {
 
-        // new particle?
-        // Particle p1_new;
-
-        // counts of particles within left and right semi-circle
-        int l = 0;
-        int r = 0;
-        int n_close = 0;
+        // reset counts stored in particle to 0
+        p1->l = 0;
+        p1->r = 0;
+        p1->n_close = 0;
+        int l = 0, r = 0, n_close = 0;
         
         // interactions
-        //particle_type* p2 = m_particle_list.front();
         for (particle_type* &p2 : m_particle_list) {
 
             // exclude self from check
@@ -222,38 +220,12 @@ void Miniverse::Step() {
             }
         }
 
-        // total num within circle
-        int n = l + r;
-
-        // store n in particle!!
+        // store neighbour counts in particle
+        p1->l = l;
+        p1->r = r;
+        p1->n_close = n_close;
 
         // TODO: ALSO HERE ADD PARTICLE TO SENDBUFFER LISTS IF IT IS IN RADIUS OF GRID CELL EDGE!
-
-        // TODO: THE FOLLOWING UPDATES NEED TO BE MOVED TO A LATER FINAL STEP ONCE ALL CHECKS HAVE BEEN DONE!!!
-
-        // set colour
-        p1->colour = get_colour(n, n_close);
-
-        // set change in heading direction
-        p1->heading += alpha + beta * n * sign(r - l);
-
-        // apply force to get new x and y
-        p1->x += cos(p1->heading) * velocity;
-        p1->y += sin(p1->heading) * velocity;
-
-        // wrap x
-        if (p1->x < 0) {
-            p1->x += u_width;
-        } else if (p1->x >= u_width) {
-            p1->x -= u_width;
-        }
-
-        // wrap y
-        if (p1->y < 0) {
-            p1->y += u_height;
-        } else if (p1->y >= u_height) {
-            p1->y -= u_height;
-        }
     }
 
     // Step 2: send and receive particles which were in contact with walls, and process interactions between them, adding
@@ -273,9 +245,36 @@ void Miniverse::Step() {
 
     // Step 3: now we have final counts, update colours velocities and headings, for all particles and then update their
     // positions, passing to other processes if they go outside of the local box.
+    for (particle_type* &p : m_particle_list) {
 
+        // total num within circle
+        int n = p->l + p->r;
 
+        // set colour
+        p->colour = get_colour(n, p->n_close);
 
+        // set change in heading direction
+        p->heading += alpha + beta * n * sign(p->r - p->l);
+
+        // apply force to get new x and y
+        p->x += cos(p->heading) * velocity;
+        p->y += sin(p->heading) * velocity;
+
+        // wrap x
+        if (p->x < 0) {
+            p->x += u_width;
+        } else if (p->x >= u_width) {
+            p->x -= u_width;
+        }
+
+        // wrap y
+        if (p->y < 0) {
+            p->y += u_height;
+        } else if (p->y >= u_height) {
+            p->y -= u_height;
+        }
+        // TODO: check which grid cell new coords are in
+    }
 }
 
 void Miniverse::WriteLocalParticlesToOutFile() {
