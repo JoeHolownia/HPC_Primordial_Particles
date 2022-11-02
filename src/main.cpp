@@ -3,6 +3,7 @@
 #include "nlohmann/json.hpp"
 #include "particle.h"
 #include <mpi.h>
+#include <chrono>
 using json = nlohmann::json;
 
 #define UP 0
@@ -77,6 +78,9 @@ void calculate_grid_layout(int num_procs, int *grid_rows, int *grid_cols)
 
 int main(int argc, char *argv[]) {
 
+	// get the current time, for benchmarking
+	auto start_time = std::chrono::high_resolution_clock::now();
+
 	// initalise MPI
     int rank, num_procs;
     MPI_Init(&argc, &argv);
@@ -107,7 +111,7 @@ int main(int argc, char *argv[]) {
 	// read in json settings
   	if (rank == 0) {
 
-		// read in json data: TODO: THIS IS PROBLEMATIC ATM, EITHER NEED TO STORE THESE GLOBALLY OR READ IN AND THEN DISTRIBUTE TO EACH PROCESS
+		// read in json data
 		std::ifstream json_settings_file("settings.json");
 		json settings = json::parse(json_settings_file);
 		json_settings_file.close();
@@ -180,6 +184,9 @@ int main(int argc, char *argv[]) {
   	// instantiate miniverse, run by individual process
   	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
 
+	// time recorded for initialisation
+	auto finish_init_time = std::chrono::high_resolution_clock::now();
+
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
 
@@ -188,15 +195,32 @@ int main(int argc, char *argv[]) {
 		miniverse.WriteLocalParticlesToOutFile();
     }
 
-    // output average time
-    // timeAvg = Totaltime / (float) time_steps;
-    // std::cout<<timeAvg<<"ms\n";
+	// parallel portion (simulation) finish time
+	auto parallel_finish_time = std::chrono::high_resolution_clock::now();
 
 	// clean particles
 	miniverse.Clean();
   	delete universe;
 
+	// record final finish time
+	auto finish_time = std::chrono::high_resolution_clock::now();
+
 	if (rank == 0) {
+
+		// print time details to stdout
+		auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
+		auto time_spent_in_parallel = std::chrono::duration_cast<std::chrono::microseconds>(parallel_finish_time - finish_init_time);
+		auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
+		auto average_time_per_step = time_spent_in_parallel.count() / (float) time_steps;
+		auto serial_time_spent = total_time_spent.count() - time_spent_in_parallel.count();
+		
+		std::cout << "Time spent in initialization:                     " << std::setw(12) << time_spent_in_init.count() << " us\n";
+      	std::cout << "Time spent in simulation (parallel):              " << std::setw(12) << time_spent_in_parallel.count() << " us\n";
+      	std::cout << "Steps:                                            " << std::setw(12) << time_steps << "\n";
+      	std::cout << "Average Time Per Step:                            " << std::setw(12) << average_time_per_step << " us\n";
+      	std::cout << "Total time:                                       " << std::setw(12) << total_time_spent.count() << " us\n";
+      	std::cout << "Serial time:                                      " << std::setw(12) << serial_time_spent << " us\n";
+
     	// call Python to plot data 
 		std::string command = "python3 display.py";
 		SystemCommandCall(command);
