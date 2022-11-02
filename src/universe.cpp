@@ -55,6 +55,14 @@ Colour get_colour(int n, int n_close) {
 }
 
 
+void add_to_send_buffer(particle_type* send_buffer, particle_type* p) {
+    /**
+    *  @brief Copy particle to given send buffer, to be sent to another process.
+    */
+    memcpy(send_buffer, p, sizeof(particle_type));
+}
+
+
 Universe::Universe(int num_particles, int width, int height, float density, float a, float b, float g) {
     /**
      * @brief Universe constructor, describes the properties of the overall system. 
@@ -78,18 +86,22 @@ Universe::Universe(int num_particles, int width, int height, float density, floa
 }
 
 
-Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, int num_particles, Universe* universe) {
+Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, 
+                     int neighbours[NUM_NEIGHBOURS], int num_particles, Universe* universe) {
     /**
      * @brief Miniverse constructor, a local square grid cell of the universe managing its own set of particles independently. 
      */
 
-    // initialize miniverse parameters
+    // instantiate MPI parameters
     m_rank = rank;
     m_num_proc = num_proc;
+    m_grid_comm = grid_comm;
+    m_neighbours = neighbours;
+
+    // initialize miniverse parameters
     m_box = box_coords;
     m_width = width;
     m_height = height;
-    m_grid_comm = grid_comm;
     m_num_particles = num_particles;
     m_universe = universe;
 
@@ -136,15 +148,16 @@ void::Miniverse::InitState() {
 
     // initialise all particles with random positions and headings
     for (int i = 0; i < m_num_particles; i++) {
-        //particle_type* p = new Particle();
+
+        // instantiate new particle
         particle_type* p = new Particle();
         p->id = i + m_rank * m_num_particles;
         p->colour = green;
 
-        // TODO: ENSURE THIS IS WITHIN THE BOUNDS OF OUR BOX!!!
-        p->x = m_box.x0 + uniform_rand(m_universe -> u_rand_gen) * m_width;
-        p->y = m_box.y0 + uniform_rand(m_universe -> u_rand_gen) * m_height;
-        p->heading = uniform_rand(m_universe -> u_rand_gen) * TAU;
+        // randomly place particles in box with random headings
+        p->x = m_box.x0 + uniform_rand(m_universe->u_rand_gen) * m_width;
+        p->y = m_box.y0 + uniform_rand(m_universe->u_rand_gen) * m_height;
+        p->heading = uniform_rand(m_universe->u_rand_gen) * TAU;
 
         // add particle to linked list
         m_particle_list.push_front(p);
@@ -226,6 +239,11 @@ void Miniverse::Step() {
         p1->n_close = n_close;
 
         // TODO: ALSO HERE ADD PARTICLE TO SENDBUFFER LISTS IF IT IS IN RADIUS OF GRID CELL EDGE!
+        int grid_cell_dir = check_particle_box(p1);
+        if (grid_cell_dir != -1) {
+            
+        }
+
     }
 
     // Step 2: send and receive particles which were in contact with walls, and process interactions between them, adding
@@ -242,6 +260,8 @@ void Miniverse::Step() {
     }
     MPI_Waitall(4, request, MPI_STATUS_IGNORE); //Wait for non-blocking send completion.
     */
+
+    // 
 
     // Step 3: now we have final counts, update colours velocities and headings, for all particles and then update their
     // positions, passing to other processes if they go outside of the local box.
@@ -260,6 +280,9 @@ void Miniverse::Step() {
         p->x += cos(p->heading) * velocity;
         p->y += sin(p->heading) * velocity;
 
+        // TODO: check which grid cell new coords are in
+
+
         // wrap x
         if (p->x < 0) {
             p->x += u_width;
@@ -273,8 +296,59 @@ void Miniverse::Step() {
         } else if (p->y >= u_height) {
             p->y -= u_height;
         }
-        // TODO: check which grid cell new coords are in
     }
+}
+
+
+std::array<int, 2> Miniverse::check_particle_edge_contact(particle_type* p) {
+    /**
+    *  @brief Check if the radius about a particle is in contact 
+              with the edge of a grid cell, so as to consider it for sending. 
+    **/
+
+    // x, y edge contacts
+    std::array<int, 2> edge_contacts = {-1, -1};
+
+    // get deltas between particle and four edges
+    float dx_left = m_box.x0 - p->x;
+    float dx_right = m_box.x1 - p->x;
+    float dy_down = m_box.y0 - p->y;
+    float dy_up = m_box.y1 - p->y;
+
+    // check x edges
+    if (abs(dx_left) <= radius) {
+        edge_contacts[0] = LEFT;
+
+    } else if (abs(dx_right) <= radius) {
+        edge_contacts[0] = RIGHT;
+    }
+
+    // check y edges
+    if (abs(dy_down) <= radius) {
+        edge_contacts[1] = DOWN;
+
+    } else if (abs(dy_up) <= radius) {
+        edge_contacts[1] = UP;
+    }
+
+    return edge_contacts;
+}
+
+
+int Miniverse::check_particle_box(particle_type* p) {
+    /**
+    *  @brief Check if particle has moved into one of the surrounding grid cells. 
+    **/
+
+    if(p->x < m_box.x0)  return LEFT;
+    if(p->x >= m_box.x1)  return RIGHT;
+    if(p->y < m_box.y0) return DOWN;
+    if(p->y >= m_box.y1) return UP;
+
+    // TODO: CHECK DIAGONALS AS WELL!!!
+
+    // return flag that the particle is still in the same box
+    return -1;
 }
 
 void Miniverse::WriteLocalParticlesToOutFile() {

@@ -6,13 +6,6 @@
 #include <chrono>
 using json = nlohmann::json;
 
-#define UP 0
-#define DOWN 1
-#define LEFT 2
-#define RIGHT 3
-
-void CalculateGridLayout(int nProcs, int *gridRows, int *gridCols); // PLEASE MOVE THIS TO A SEPERATE HEADER FILE, MAYBE MPI HELPERS??
-
 void SystemCommandCall(std::string command) {
     /**
      * @brief Function to call other processes with a given command.
@@ -124,8 +117,6 @@ int main(int argc, char *argv[]) {
 		beta = settings["beta"].get<float>();
 		gamma = settings["gamma"].get<float>();
 		time_steps = settings["time_steps"].get<int>();
-
-		//printf("Yo I'm proc: %d and here is my Global Data - Num Particles: %d, Height: %d, Width: %d\n", rank, global_num_particles, global_height, global_width);
   	}
 
 	// broadcast global universe vars to all processes
@@ -142,20 +133,19 @@ int main(int argc, char *argv[]) {
 
     // init MPI grid communicator
     MPI_Comm grid_comm;
-    MPI_Request request[4];
-    MPI_Status status[4];  // I BELIEVE 4 IS BECAUSE OF THE left, top, right, down --> if we do diagonal this needs to be 8
+    MPI_Request request[NUM_NEIGHBOURS];
+    MPI_Status status[NUM_NEIGHBOURS];
 
 	// init grid variables
-    int grid_rows, grid_cols, reorder = 1, neighbours[4], dims[2], my_coords[2], periods[2] = {1, 1};
+    int grid_rows, grid_cols, reorder = 1, neighbours[NUM_NEIGHBOURS], dims[2], my_coords[2], periods[2] = {1, 1};
 
-	// create a division of processes in 2-D cartesian grid.
+	// create processes in 2-D cartesian grid, which wraps.
 	calculate_grid_layout(num_procs, &grid_rows, &grid_cols);
     dims[0] = grid_rows;
     dims[1] = grid_cols;
     MPI_Dims_create(num_procs, 2, dims); 
-
 	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &grid_comm);
-    MPI_Cart_get(grid_comm, 2, dims, periods, my_coords); // myCoords[0] = row, myCoords[0] = col.
+    MPI_Cart_get(grid_comm, 2, dims, periods, my_coords);
 
   	// calculate the local box dimension.
 	box_coord_type local_box;
@@ -183,7 +173,8 @@ int main(int argc, char *argv[]) {
   	Universe* universe = new Universe(global_num_particles, global_width, global_height, density, alpha, beta, gamma);
 
   	// instantiate miniverse, run by individual process
-  	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
+  	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, 
+						grid_comm, neighbours, local_num_particles, universe);
 
 	// time recorded for initialisation
 	auto finish_init_time = std::chrono::high_resolution_clock::now();

@@ -11,12 +11,23 @@
 #include <cmath>
 #include <chrono>
 #include <iostream>
+#include <cstring>
 #include "particle.h"
 #include "ioparser.h"
 #include <list>
 #include <mpi.h>
+#include <array>
 
-#define COMM_BUFFER_SIZE 2000
+#define COMM_BUFFER_SIZE 1000
+#define NUM_NEIGHBOURS 4
+#define UP 0
+#define DOWN 1
+#define LEFT 2
+#define RIGHT 3
+#define UP_RIGHT 4
+#define DOWN_RIGHT 5
+#define DOWN_LEFT 6
+#define UP_LEFT 7
 
 class Universe {
 public:
@@ -46,18 +57,21 @@ public:
 
     // constructor and core functions
     Miniverse(int num_proc, int rank, box_coord_type box_coords, int width, int height, MPI_Comm grid_comm, 
-              int num_particles, Universe* universe);
+              int neighbours[NUM_NEIGHBOURS], int num_particles, Universe* universe);
     void InitState();
     void Step();
+    std::array<int, 2> check_particle_edge_contact(particle_type* p);
+    int check_particle_box(particle_type* p);
     void WriteLocalParticlesToOutFile();
     void Clean();
-    std::list<particle_type*> GetParticleList();
 
     // getters and setters
-    particle_type* GetCurrentState();
+    std::list<particle_type*> GetParticleList();
     int GetNumParticles();
 
 private:
+
+    // miniverse properties
     int m_num_proc; // MPI num procs
     int m_rank; // MPI rank
     box_coord_type m_box; // box coords
@@ -66,8 +80,6 @@ private:
     MPI_Comm m_grid_comm; // MPI grid communicator
     int m_num_particles;
     Universe* m_universe; // properties of overall universe
-
-    int m_send_counts[4]={0, 0, 0, 0};
 
     // version of universe properties for convenience
     int u_num_particles;
@@ -89,9 +101,11 @@ private:
     // io parser
     IOParser* io_parse_obj;
 
-    // instantiate grid communication buffers
-    particle_type send_buffer[4][COMM_BUFFER_SIZE];
-    particle_type recv_buffer[4][COMM_BUFFER_SIZE];
+    // grid communication variables and buffers
+    int* m_neighbours;
+    int m_send_counts[NUM_NEIGHBOURS]={0};
+    particle_type send_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
+    particle_type recv_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
 };
 
 #endif //PROJECT_UNIVERSE_H
