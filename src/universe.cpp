@@ -4,7 +4,10 @@
 
 #include "universe.h"
 #include "particle.h"
+#include "ioparser.h"
 #include <mpi.h>
+#include <string> 
+#include <sstream>
 
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
 #define PI 3.141592653589793115997963468544185161590576171875
@@ -106,6 +109,16 @@ Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int widt
 
     // initialise the start state using the given parameters
     InitState();
+
+    // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
+	// to write to a seperate file
+    std::ostringstream out_file_name;
+    out_file_name << "../results/out_display_" << std::to_string(m_rank) << ".bin";
+	io_parse_obj = new IOParser(out_file_name.str(), "out_log.bin");
+	io_parse_obj -> OpenOutFile();
+
+    // write initial state to out file
+    WriteLocalParticlesToOutFile();
 
     printf("Hello from process %d out of %d, I have Height: %d, Width: %d, Local Num Parts: %d, x0: %lf, x1: %lf, y0: %lf, y1: %lf\n", 
 	m_rank, m_num_proc, m_width, m_height, m_num_particles, m_box.x0, m_box.x1, m_box.y0, m_box.y1);
@@ -265,16 +278,30 @@ void Miniverse::Step() {
 
 }
 
+void Miniverse::WriteLocalParticlesToOutFile() {
+    /**
+    *  @brief Writes the particle list to the io parser out file.
+    */
+
+    io_parse_obj->WriteStateToOutFile(m_particle_list, m_particle_list.size());
+}
+
 void Miniverse::Clean() {
     /**
-     * @brief Clear memory for the particle list.
+     * @brief Clear memory for the particle list and io parser.
      * 
      */
 
+    
+    // clear particle list
     for (auto& particle : m_particle_list) {
         delete particle;
     }
     m_particle_list.clear(); 
+
+    // close io parser
+	io_parse_obj -> CloseOutFile();
+	delete io_parse_obj;
 }
 
 std::list<particle_type*> Miniverse::GetParticleList() {

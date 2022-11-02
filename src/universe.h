@@ -12,6 +12,7 @@
 #include <chrono>
 #include <iostream>
 #include "particle.h"
+#include "ioparser.h"
 #include <list>
 #include <mpi.h>
 
@@ -48,6 +49,7 @@ public:
               int num_particles, Universe* universe);
     void InitState();
     void Step();
+    void WriteLocalParticlesToOutFile();
     void Clean();
     std::list<particle_type*> GetParticleList();
 
@@ -83,6 +85,9 @@ private:
 
     // particles for miniverse as a doubly linked list of pointers to particles
     std::list<particle_type*> m_particle_list;
+
+    // io parser
+    IOParser* io_parse_obj;
 
     // instantiate grid communication buffers
     particle_type send_buffer[4][COMM_BUFFER_SIZE];

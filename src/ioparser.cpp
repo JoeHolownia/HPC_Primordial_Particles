@@ -5,14 +5,13 @@
 #include "ioparser.h"
 using namespace std;
 
-IOParser::IOParser(string settings_fpath, string out_disp_fpath, string out_log_fpath) {
+IOParser::IOParser(string out_disp_fpath, string out_log_fpath) {
     /**
      * @brief instantiate the IOParser object.
      * @param setting_fpath the json file to open and read settings from.
      * @param out_fpath the binary file fp to write simulation output to.
      * 
      */
-    io_settings_fpath = settings_fpath;
     io_out_disp_fpath = out_disp_fpath;
     io_out_log_fpath = out_log_fpath;
 }
@@ -24,7 +23,7 @@ void::IOParser::OpenOutFile() {
     io_out_disp_file.open(io_out_disp_fpath, ios::out | ios::binary);
 }
 
-void::IOParser::WriteStateToOutFile(Particle* state, int n) {
+void::IOParser::WriteStateToOutFile(std::list<particle_type*> particle_list, int n) {
     /**
      * @brief Writes the given state to the IOParser binary out file, as an
      * array of x coords, y coords and then colours, all as floats. Does
@@ -37,13 +36,18 @@ void::IOParser::WriteStateToOutFile(Particle* state, int n) {
     float* arr_colour = new float[n];
 
     // fill temp arrays from particle structs in state
-    for (int i = 0; i < n; i++) {
-        arr_x[i] = state[i].x;
-        arr_y[i] = state[i].y;
-        arr_colour[i] = (float)state[i].colour;
+    int i = 0;
+    for (particle_type* &p : particle_list) {
+        arr_x[i] = p->x;
+        arr_y[i] = p->y;
+        arr_colour[i] = (float)p->colour;
+        i++;
     }
 
-    // write coords, and colours
+    float nf = (float)n;
+
+    // write number or particles for this state, write coords, and colours
+    io_out_disp_file.write((char *)&nf, sizeof(float));
     io_out_disp_file.write((char *)arr_x, sizeof(float) * n);
     io_out_disp_file.write((char *)arr_y, sizeof(float) * n);
     io_out_disp_file.write((char *)arr_colour, sizeof(float) * n);

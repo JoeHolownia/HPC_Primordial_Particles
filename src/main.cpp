@@ -1,6 +1,5 @@
 #include <cstring>
 #include "universe.h"
-#include "ioparser.h"
 #include "nlohmann/json.hpp"
 #include "particle.h"
 #include <mpi.h>
@@ -105,11 +104,8 @@ int main(int argc, char *argv[]) {
 	int global_num_particles, global_width, global_height, time_steps;
 	float density, alpha, beta, gamma;
 
-	// instantiate io parser
-	IOParser* io_parse_obj;
+	// read in json settings
   	if (rank == 0) {
-		io_parse_obj = new IOParser("settings.json", "out_display.bin", "out_log.bin");
-		//*io_parser_ref = io_parse_obj;
 
 		// read in json data: TODO: THIS IS PROBLEMATIC ATM, EITHER NEED TO STORE THESE GLOBALLY OR READ IN AND THEN DISTRIBUTE TO EACH PROCESS
 		std::ifstream json_settings_file("settings.json");
@@ -125,7 +121,7 @@ int main(int argc, char *argv[]) {
 		time_steps = settings["time_steps"].get<int>();
 
 		//printf("Yo I'm proc: %d and here is my Global Data - Num Particles: %d, Height: %d, Width: %d\n", rank, global_num_particles, global_height, global_width);
-    }
+  	}
 
 	// broadcast global universe vars to all processes
 	MPI_Bcast(&global_num_particles, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -181,29 +177,15 @@ int main(int argc, char *argv[]) {
 	// instantiate universe (contains properties to be used by each miniverse)
   	Universe* universe = new Universe(global_num_particles, global_width, global_height, density, alpha, beta, gamma);
 
-	// instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
-    if (rank == 0) {
-		io_parse_obj -> OpenOutFile();
-		//io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
-    }
-
   	// instantiate miniverse, run by individual process
   	Miniverse miniverse(num_procs, rank, local_box, local_box_width, local_box_height, grid_comm, local_num_particles, universe);
 
     // run simulation for all time steps
-	time_steps = 1;
     for (int i = 0; i < time_steps; i++) {
 
 		// need to run miniverse internal step, then sharing step, then position update step
 		miniverse.Step();
-
-		// TODO: THIS!!!
-		if (rank == 0) {
-			// get all particles from all miniverses
-
-			// write output state to file
-			// io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
-		}
+		miniverse.WriteLocalParticlesToOutFile();
     }
 
     // output average time
@@ -214,14 +196,10 @@ int main(int argc, char *argv[]) {
 	miniverse.Clean();
   	delete universe;
 
-  	if (rank == 0) {
-		// close out file
-		io_parse_obj -> CloseOutFile();
-		delete io_parse_obj;
-
+	if (rank == 0) {
     	// call Python to plot data 
-		// std::string command = "python3 display.py";
-		// SystemCommandCall(command);
+		std::string command = "python3 display.py";
+		SystemCommandCall(command);
     }
 
 	printf("I HAVE MADE IT TO THE END OF MY JOURNEY!!!\n");
