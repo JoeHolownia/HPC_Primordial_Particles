@@ -57,8 +57,12 @@ struct Timer {
   }
 };
 
-void calculate_grid_layout(int num_procs, int *grid_rows, int *grid_cols)
-{
+void calculate_grid_layout(int num_procs, int *grid_rows, int *grid_cols) {
+  /**
+  *  @brief Determine the number of grid cells in the cartesian space 
+            based on the number of processes.
+  */
+
     int i;
     for (i = sqrt(num_procs); i > 0; i--) {
         if (num_procs % i == 0) {
@@ -79,24 +83,6 @@ int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-
-	// create MPI particle type: id/x_coord/y_coord/heading/colour
-	int num_part_fields = 5;
-	MPI_Datatype particle_types[num_part_fields] = {MPI_INT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_INT};
-    MPI_Datatype mpi_particle_type;
-    int block_counts[num_part_fields] = {1, 4, 4, 4, 1};
-    MPI_Aint offsets[num_part_fields], extent;
-    offsets[0] = 0;
-	MPI_Type_extent(MPI_INT, &extent);
-    offsets[1] = 1 * extent;
-    MPI_Type_extent(MPI_FLOAT, &extent);
-    offsets[2] = 4 * extent;
-	MPI_Type_extent(MPI_FLOAT, &extent);
-    offsets[3] = 4 * extent;
-	MPI_Type_extent(MPI_FLOAT, &extent);
-    offsets[4] = 4 * extent;
-    MPI_Type_struct(num_part_fields, block_counts, offsets, particle_types, &mpi_particle_type);
-    MPI_Type_commit(&mpi_particle_type);
 
 	// global universe variables
 	int global_num_particles, global_width, global_height, time_steps;
@@ -133,8 +119,6 @@ int main(int argc, char *argv[]) {
 
     // init MPI grid communicator
     MPI_Comm grid_comm;
-    MPI_Request request[NUM_NEIGHBOURS];
-    MPI_Status status[NUM_NEIGHBOURS];
 
 	// init grid variables
     int grid_rows, grid_cols, reorder = 1, neighbours[NUM_NEIGHBOURS], dims[2], my_coords[2], periods[2] = {1, 1};
@@ -182,9 +166,9 @@ int main(int argc, char *argv[]) {
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
 
-		// need to run miniverse internal step, then sharing step, then position update step
-		miniverse.Step();
-		miniverse.WriteLocalParticlesToOutFile();
+      // need to run miniverse internal step, then sharing step, then position update step
+      miniverse.Step();
+      miniverse.WriteLocalParticlesToOutFile();
     }
 
 	// parallel portion (simulation) finish time
@@ -213,7 +197,7 @@ int main(int argc, char *argv[]) {
       	std::cout << "Total time:                                       " << std::setw(12) << total_time_spent.count() << " us\n";
       	std::cout << "Serial time:                                      " << std::setw(12) << serial_time_spent << " us\n";
 
-    	// call Python to plot data 
+    // call Python to plot data 
 		std::string command = "python3 display.py";
 		SystemCommandCall(command);
     }
@@ -221,7 +205,6 @@ int main(int argc, char *argv[]) {
 	printf("I HAVE MADE IT TO THE END OF MY JOURNEY!!!\n");
 
 	// end MPI
-	MPI_Type_free(&mpi_particle_type);
     MPI_Finalize();
     return 0;
 }

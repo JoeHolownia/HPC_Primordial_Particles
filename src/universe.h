@@ -60,8 +60,10 @@ public:
               int neighbours[NUM_NEIGHBOURS], int num_particles, Universe* universe);
     void InitState();
     void Step();
-    std::array<int, 2> check_particle_edge_contact(particle_type* p);
-    int check_particle_box(particle_type* p);
+    void SendRecvParticles(int* send_counts);
+    std::array<int, 2> CheckParticleEdgeContact(particle_type* p);
+    int CheckParticleBox(particle_type* p);
+    void AddToSendBuffer(particle_type* send_buffer, particle_type* p);
     void WriteLocalParticlesToOutFile();
     void Clean();
 
@@ -102,10 +104,18 @@ private:
     IOParser* io_parse_obj;
 
     // grid communication variables and buffers
+    MPI_Datatype mpi_particle_type;
     int* m_neighbours;
+    int m_edge_send_counts[NUM_NEIGHBOURS]={0};
     int m_send_counts[NUM_NEIGHBOURS]={0};
-    particle_type send_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
-    particle_type recv_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
+    particle_type m_send_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
+    particle_type m_recv_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
+    MPI_Request m_request[NUM_NEIGHBOURS];
+    MPI_Status m_status[NUM_NEIGHBOURS];
+
+    // lists of pointers to particles on edges of box
+    std::list<particle_type*> m_edge_lists[NUM_NEIGHBOURS];
+
 };
 
 #endif //PROJECT_UNIVERSE_H

@@ -10,6 +10,8 @@
 #include <list>
 #include "particle.h"
 
+void print_array(const double* A, int size);
+
 struct Settings {
     int num_particles;
     int width;

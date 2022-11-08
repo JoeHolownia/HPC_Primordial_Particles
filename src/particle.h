@@ -21,6 +21,10 @@ struct Particle {
     float x, y;  // x and y coordinates
     float heading;  // direction particle is facing (+ is to the right, - to the left)
     Colour colour;  // current colour
+
+    // bool operator==(const Particle* rhs) const {
+    //     return id == rhs->id;
+    // }
 };
 
 struct BoxCoords {

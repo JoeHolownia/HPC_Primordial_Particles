@@ -87,6 +87,10 @@ def read_binary_out_file(bin_file_dir: str, time_steps: int, num_p: int) -> List
         if out_fname.split(".")[1] != "bin":
             continue
 
+        # DEBUG!!!
+        # if out_fname != "out_display_3.bin":
+        #     continue
+
         # open binary data file
         out_file_fp = bin_file_dir + "/" + out_fname
         with open(out_file_fp, "rb") as bin_file:
@@ -94,13 +98,11 @@ def read_binary_out_file(bin_file_dir: str, time_steps: int, num_p: int) -> List
 
         # read all states and their corresponding particle positions / colours  
         s_off = 0
-        print("Time Steps: ", time_steps)
         for i in range(time_steps):
             num_p = int(fdata[s_off])
             part_off = s_off + 1
             xs = fdata[part_off: part_off + num_p]
             ys = fdata[part_off + num_p: part_off + 2 * num_p]
-            #coords = np.column_stack((xs, ys))
             coords = [(xs[i], ys[i]) for i in range(len(xs))]
             colours = [COLOUR_MAP[int(x) % 5] for x in fdata[part_off + 2 * num_p: part_off + 3 * num_p]]
             s_off += 1 + 3 * num_p

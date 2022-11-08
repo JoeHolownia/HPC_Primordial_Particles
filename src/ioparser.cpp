@@ -5,6 +5,16 @@
 #include "ioparser.h"
 using namespace std;
 
+void print_array(const double* A, int size) {
+    /**
+    *  @brief Helper function to print arrays for debug.
+    */
+   for (int i = 0; i < size; i++) {
+        std::cout << A[i] << " ";
+    }
+    std::cout << "\n";
+}
+
 IOParser::IOParser(string out_disp_fpath, string out_log_fpath) {
     /**
      * @brief instantiate the IOParser object.
