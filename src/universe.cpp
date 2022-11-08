@@ -159,8 +159,8 @@ void::Miniverse::InitState() {
      */
 
     // get seeded uniform random distribution
-    // m_universe.u_rand_gen.seed((unsigned int)time(0));
-    m_universe -> u_rand_gen.seed(100); // FOR TIMING!
+    m_universe -> u_rand_gen.seed((unsigned int)time(0));
+    //m_universe -> u_rand_gen.seed(100); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -202,7 +202,6 @@ void Miniverse::Step() {
         p1->l = 0;
         p1->r = 0;
         p1->n_close = 0;
-        int l = 0, r = 0, n_close = 0;
         
         // interactions
         for (particle_type* &p2 : m_particle_list) {
@@ -212,50 +211,9 @@ void Miniverse::Step() {
                 continue;
             }
 
-
-
-            // get deltas
-            float dx = p2->x - p1->x;
-            float dy = p2->y - p1->y;
-
-            // wrap deltas, as mirror image about box mid-point
-            if (dx > u_width * 0.5f) {
-                dx -= u_width;
-            } else if (dx < -u_width * 0.5f) {
-                dx += u_width;
-            }
-            if (dy > u_height * 0.5f) {
-                dy -= u_height;
-            } else if (dy < -u_height * 0.5f) {
-                dy += u_height;
-            }
-
-            // first check if particle in square (simpler calculation)
-            if (abs(dx) <= radius && abs(dy) <= radius) {
-
-                // check if particle in u_radius circle
-                float lhs = dx * dx + dy * dy;
-                if (lhs <= radius_sqrd) {
-
-                    // check if point is to the left or right of heading to determine the points in each half
-                    if (dx * sin(p1->heading) - dy * cos(p1->heading) < 0) {
-                        r++;
-                    }  else  {
-                        l++;
-                    }
-
-                    // also check if particle in smaller radius circle, just for colouring
-                    if (lhs < close_radius_sqrd) {
-                        n_close++;
-                    }
-                }
-            }
+            // update neighbour counts for p1
+            CheckIfNeighbours(p1, p2);
         }
-
-        // store neighbour counts in particle
-        p1->l = l;
-        p1->r = r;
-        p1->n_close = n_close;
 
         // add particle to send buffer and edge particles list if in contact with grid cell edge
         std::array<int, 2> grid_cell_dir = CheckParticleEdgeContact(p1);
@@ -276,34 +234,29 @@ void Miniverse::Step() {
 
 
     // Step 2: send and receive particles which were in contact with walls, and process interactions between them
-    //SendRecvParticles(m_edge_send_counts);
+    SendRecvParticles(m_edge_send_counts);
     
     // iterate through received data and edge list and determine interactions
     // between particles on each grid border
-    // for(int i = 0; i < NUM_NEIGHBOURS; i++) {
+    for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-    //     int num_particles_recvd;
-    //     MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
+        int num_particles_recvd;
+        MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
 
-    //     for (particle_type* &p1 : m_particle_list) {
+        for (particle_type* &p1 : m_particle_list) {
 
-    //         for(int j = 0; j < num_particles_recvd; j++) {
+            for(int j = 0; j < num_particles_recvd; j++) {
 
-    //             // get received particle
-    //             particle_type recvd_p = m_recv_buffer[i][j];
-    //             new_p->id = recvd_p.id;
-    //             new_p->x = recvd_p.x;
-    //             new_p->y = recvd_p.y;
-    //             new_p->heading = recvd_p.heading;
-    //             new_p->colour = recvd_p.colour;
+                // get received particle
+                particle_type recvd_p = m_recv_buffer[i][j];
 
-    //             // calculate neighbour counts
+                // calculate neighbour counts for p1
+                CheckIfNeighbours(p1, &recvd_p);
+            }
+        }
+    }
 
-    //         }
-    //     }
-    // }
-
-    // Step 3: now we have final counts, update colours velocities and headings, for all particles and then update their
+    // Step 3: now we have final counts, update colours, velocities and headings, for all particles and then update their
     // positions, passing to other processes and removing from local list if they go outside of the local box.
     for (std::list<particle_type*>::const_iterator iter = m_particle_list.begin(), end = m_particle_list.end(); iter != end; ++iter) {
 
@@ -354,6 +307,7 @@ void Miniverse::Step() {
 
     // send and receive particles to neighbouring processes
     SendRecvParticles(m_send_counts);
+    //printf("WE FINISHED SECOND SEND RECEIVE DAWG!!!...\n");
 
     // add received particles to local list of particles
     for(int i = 0; i < NUM_NEIGHBOURS; i++) {
@@ -385,6 +339,51 @@ void Miniverse::Step() {
         // }
 
         m_edge_lists[i].clear(); 
+    }
+}
+
+
+void Miniverse::CheckIfNeighbours(particle_type* p1, particle_type* p2) {
+    /**
+    *  @brief Determine whether p2 is neighbouring p1, and update p1 neighbour
+              counts accordingly.
+    */
+    
+    // get deltas
+    float dx = p2->x - p1->x;
+    float dy = p2->y - p1->y;
+
+    // wrap deltas, as mirror image about box mid-point
+    if (dx > u_width * 0.5f) {
+        dx -= u_width;
+    } else if (dx < -u_width * 0.5f) {
+        dx += u_width;
+    }
+    if (dy > u_height * 0.5f) {
+        dy -= u_height;
+    } else if (dy < -u_height * 0.5f) {
+        dy += u_height;
+    }
+
+    // first check if particle in square (simpler calculation)
+    if (abs(dx) <= radius && abs(dy) <= radius) {
+
+        // check if particle in u_radius circle
+        float lhs = dx * dx + dy * dy;
+        if (lhs <= radius_sqrd) {
+
+            // check if point is to the left or right of heading to determine the points in each half
+            if (dx * sin(p1->heading) - dy * cos(p1->heading) < 0) {
+                p1->r++;
+            }  else  {
+                p1->l++;
+            }
+
+            // also check if particle in smaller radius circle, just for colouring
+            if (lhs < close_radius_sqrd) {
+                p1->n_close++;
+            }
+        }
     }
 }
 

@@ -169,6 +169,7 @@ int main(int argc, char *argv[]) {
       // need to run miniverse internal step, then sharing step, then position update step
       miniverse.Step();
       miniverse.WriteLocalParticlesToOutFile();
+      printf("STEP %d finished... \n", i);
     }
 
 	// parallel portion (simulation) finish time

@@ -60,6 +60,7 @@ public:
               int neighbours[NUM_NEIGHBOURS], int num_particles, Universe* universe);
     void InitState();
     void Step();
+    void CheckIfNeighbours(particle_type* p1, particle_type* p2);
     void SendRecvParticles(int* send_counts);
     std::array<int, 2> CheckParticleEdgeContact(particle_type* p);
     int CheckParticleBox(particle_type* p);

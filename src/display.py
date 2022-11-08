@@ -134,13 +134,13 @@ def run_animation(settings: Settings):
     ax.set_xlim((0, settings.width))
     ax.set_ylim((0, settings.height))
     points = ax.scatter(states[0].get_coords_np()[:, 0], states[0].get_coords_np()[:, 1], color=states[0].get_colours_np(), s=5)
-    text = ax.text(0.16, 0.96, "Step: 0", color='white', fontsize=14, verticalalignment='top', horizontalalignment='right', transform=ax.transAxes)
+    text = ax.text(0.22, 0.96, "Step: 0", color='white', fontsize=14, verticalalignment='top', horizontalalignment='right', transform=ax.transAxes)
 
     # save png of initial state
     fig.savefig("../results/init_state.png", format='png')
 
     # run animation
-    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=30)
+    ani = animation.FuncAnimation(fig, update, range(len(states)), interval=60)
     plt.show()
 
     print("Saving animation to gif...")
