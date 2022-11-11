@@ -4,6 +4,7 @@
 
 #include "universe.h"
 #include "particle.h"
+#include <omp.h>
 
 #define DEGREES_TO_RADIANS 0.0174532925199432957692369076848861271344287188854172545609719144017
 #define PI 3.141592653589793115997963468544185161590576171875
@@ -71,7 +72,7 @@ Colour get_colour(int n, int n_close) {
 }
 
 
-Universe::Universe(int num_particles, int width, int height, float density, float a, float b, float g) {
+Universe::Universe(int num_particles, int width, int height, float density, float a, float b, float g, unsigned int seed) {
     /**
      * @brief Universe constructor. 
      */
@@ -93,6 +94,7 @@ Universe::Universe(int num_particles, int width, int height, float density, floa
     u_close_radius_sqrd = u_close_radius * u_close_radius;
 
     // initialise the start state using the given parameters
+    u_seed = seed;
     InitState();
 }
 
@@ -106,8 +108,7 @@ void::Universe::InitState() {
     u_state = new Particle[u_num_particles];
 
     // get seeded uniform random distribution
-    u_rand_gen.seed((unsigned int)time(0));
-    // u_rand_gen.seed(100); // FOR TIMING!
+    u_rand_gen.seed(u_seed);
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -127,6 +128,7 @@ void Universe::Step() {
      */
 
     // O(n^2) pairwise calculation
+    # pragma omp parallel for
     for (int i = 0; i < u_num_particles; i++) {
 
         // get particle

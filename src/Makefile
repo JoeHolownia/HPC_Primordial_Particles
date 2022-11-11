@@ -1,4 +1,4 @@
-CFLAGS = -std=c++11 -O0 -lm
+CFLAGS = -std=c++11 -O0 -lm -fopenmp
 
 all: main.o universe.o ioparser.o
 	g++ main.o universe.o ioparser.o ${CFLAGS} -o particles
@@ -14,4 +14,5 @@ ioparser.o: ioparser.cpp ioparser.h particle.h nlohmann/json.hpp
 
 clean:
 	rm *.o
+	rm particles
 	rm *.exe

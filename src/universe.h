@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <random>
 #include <math.h> 
-#include <time.h>
 #include <cmath>
 #include <chrono>
 #include <iostream>
@@ -17,7 +16,7 @@ class Universe {
 public:
 
     // constructor and core functions
-    Universe(int num_particles, int width, int height, float density, float a, float b, float g);
+    Universe(int num_particles, int width, int height, float density, float a, float b, float g, unsigned int seed);
     void InitState();
     void Step();
     void Clean();
@@ -40,7 +39,8 @@ private:
     float u_close_radius_sqrd;
     float u_velocity;  // velocity
     Particle *u_state;  // universe state, i.e. array of all particles
-    std::mt19937 u_rand_gen;  // seed for random number generation
+    std::mt19937 u_rand_gen;  // random number generation
+    unsigned int u_seed;
 };
 
 

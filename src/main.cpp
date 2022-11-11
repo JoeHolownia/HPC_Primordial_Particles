@@ -57,6 +57,9 @@ struct Timer {
 
 int main(int argc, char *argv[]) {
 
+  	// get the current time, for benchmarking
+	auto start_time = std::chrono::high_resolution_clock::now();
+
     // instantiate io parser
     IOParser io_parser("settings.json", "out_display.bin", "out_log.bin");
 
@@ -73,12 +76,19 @@ int main(int argc, char *argv[]) {
     float gamma = settings["gamma"].get<float>();
     int time_steps = settings["time_steps"].get<int>();
 
+	// define seed
+	unsigned int seed = (unsigned int)time(0);
+	//unsigned int seed = 100;
+
     // instantiate universe
-    Universe universe(num_particles, width, height, density, alpha, beta, gamma);
+    Universe universe(num_particles, width, height, density, alpha, beta, gamma, seed);
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     io_parser.OpenOutFile();
     io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+
+  	// time recorded for initialisation
+	  auto finish_init_time = std::chrono::high_resolution_clock::now();
 
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
@@ -87,17 +97,30 @@ int main(int argc, char *argv[]) {
       io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }
 
-    // output average time
-    // timeAvg = Totaltime / (float) time_steps;
-    // std::cout<<timeAvg<<"ms\n";
+    // parallel portion (simulation) finish time
+    auto parallel_finish_time = std::chrono::high_resolution_clock::now();
 
     // clean up memory
     io_parser.CloseOutFile();
     universe.Clean();
 
-    // call Python to plot data 
-     std::string command = "python display.py";
-     SystemCommandCall(command);
+    // record final finish time
+    auto finish_time = std::chrono::high_resolution_clock::now();
+
+    // get time information
+	auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
+	auto time_spent_in_parallel = std::chrono::duration_cast<std::chrono::microseconds>(parallel_finish_time - finish_init_time);
+	auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
+	auto average_time_per_step = time_spent_in_parallel.count() / (float) time_steps;
+	auto serial_time_spent = total_time_spent.count() - time_spent_in_parallel.count();
+
+    // // for recording data [Num Particles, Num Procs, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
+	std::cout << num_particles << "," << total_time_spent.count() << "," << serial_time_spent << "," 
+	<< time_steps << "," << average_time_per_step << "," << time_spent_in_parallel.count() << "\n";
+
+    // // call Python to plot data 
+    //  std::string command = "python display.py";
+    //  SystemCommandCall(command);
 
     return 0;
 }
