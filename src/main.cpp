@@ -89,8 +89,8 @@ int main(int argc, char *argv[]) {
 	float density, alpha, beta, gamma;
 
 	// read in json settings
-  	if (rank == 0) {
-
+	if (rank == 0) {
+		
 		// read in json data
 		std::ifstream json_settings_file("settings.json");
 		json settings = json::parse(json_settings_file);
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
 		beta = settings["beta"].get<float>();
 		gamma = settings["gamma"].get<float>();
 		time_steps = settings["time_steps"].get<int>();
-  	}
+	}
 
 	// broadcast global universe vars to all processes
 	MPI_Bcast(&global_num_particles, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -199,13 +199,13 @@ int main(int argc, char *argv[]) {
       	std::cout << "Serial time:                                      " << std::setw(12) << serial_time_spent << " us\n";
 
     // call Python to plot data 
-		std::string command = "python3 display.py";
-		SystemCommandCall(command);
+		// std::string command = "python3 display.py";
+		// SystemCommandCall(command);
     }
 
 	printf("I HAVE MADE IT TO THE END OF MY JOURNEY!!!\n");
 
 	// end MPI
-    MPI_Finalize();
-    return 0;
+  MPI_Finalize();
+  return 0;
 }

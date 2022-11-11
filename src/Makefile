@@ -17,4 +17,11 @@ ioparser.o: ioparser.cpp ioparser.h particle.h nlohmann/json.hpp
 
 clean:
 	rm *.o
+	rm ../results/*.bin
+	rm particles
 	rm *.exe
+
+clean_bin_out:
+	rm ../results/*.bin
+
+	

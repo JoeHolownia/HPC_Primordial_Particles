@@ -18,7 +18,7 @@
 #include <mpi.h>
 #include <array>
 
-#define COMM_BUFFER_SIZE 1000
+#define COMM_BUFFER_SIZE 2000
 #define NUM_NEIGHBOURS 4
 #define UP 0
 #define DOWN 1
@@ -61,7 +61,7 @@ public:
     void InitState();
     void Step();
     void CheckIfNeighbours(particle_type* p1, particle_type* p2);
-    void SendRecvParticles(int* send_counts);
+    void SendRecvParticles(int* send_counts, int tag);
     std::array<int, 2> CheckParticleEdgeContact(particle_type* p);
     int CheckParticleBox(particle_type* p);
     void AddToSendBuffer(particle_type* send_buffer, particle_type* p);
@@ -111,7 +111,7 @@ private:
     int m_send_counts[NUM_NEIGHBOURS]={0};
     particle_type m_send_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
     particle_type m_recv_buffer[NUM_NEIGHBOURS][COMM_BUFFER_SIZE];
-    MPI_Request m_request[NUM_NEIGHBOURS];
+    //MPI_Request m_request[NUM_NEIGHBOURS];
     MPI_Status m_status[NUM_NEIGHBOURS];
 
     // lists of pointers to particles on edges of box

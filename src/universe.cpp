@@ -159,7 +159,7 @@ void::Miniverse::InitState() {
      */
 
     // get seeded uniform random distribution
-    m_universe -> u_rand_gen.seed((unsigned int)time(0));
+    m_universe -> u_rand_gen.seed((unsigned int)time(0) + m_rank);
     //m_universe -> u_rand_gen.seed(100); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
@@ -234,7 +234,7 @@ void Miniverse::Step() {
 
 
     // Step 2: send and receive particles which were in contact with walls, and process interactions between them
-    SendRecvParticles(m_edge_send_counts);
+    SendRecvParticles(m_edge_send_counts, 0);
     
     // iterate through received data and edge list and determine interactions
     // between particles on each grid border
@@ -306,8 +306,7 @@ void Miniverse::Step() {
     }
 
     // send and receive particles to neighbouring processes
-    SendRecvParticles(m_send_counts);
-    //printf("WE FINISHED SECOND SEND RECEIVE DAWG!!!...\n");
+    SendRecvParticles(m_send_counts, 1);
 
     // add received particles to local list of particles
     for(int i = 0; i < NUM_NEIGHBOURS; i++) {
@@ -388,25 +387,20 @@ void Miniverse::CheckIfNeighbours(particle_type* p1, particle_type* p2) {
 }
 
 
-void Miniverse::SendRecvParticles(int* send_counts) {
+void Miniverse::SendRecvParticles(int* send_counts, int tag) {
     /**
     *  @brief Send all particles added to send buffer, and receive corresponding particles from neighbours
-              in receive buffer.
+              in receive buffer. Tag ensures this send receive is unique.
     */
 
-    for(int i = 0; i < NUM_NEIGHBOURS; i++){
+    for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-        // send this process' particles to corresponding neighbor
-        MPI_Isend(m_send_buffer[i], send_counts[i], mpi_particle_type, m_neighbours[i], 0, m_grid_comm, &(m_request[i]));
-
-        //printf("Direction %d send counts: %d\n", i, m_send_counts[i]);
-
-        //Receive own data from neighbor
-        MPI_Recv(m_recv_buffer[i], COMM_BUFFER_SIZE, mpi_particle_type, MPI_ANY_SOURCE, 0, m_grid_comm, &(m_status[i]));
+        // send and receive particles to and from corresponding neighbor
+        printf("Sending Particles...\n");
+        MPI_Send(m_send_buffer[i], send_counts[i], mpi_particle_type, m_neighbours[i], tag, m_grid_comm);
+        MPI_Recv(m_recv_buffer[i], COMM_BUFFER_SIZE, mpi_particle_type, MPI_ANY_SOURCE, tag, m_grid_comm, &(m_status[i]));
+        printf("Received Particles...\n");
     }
-
-    // wait for non-blocking send on all processes.
-    MPI_Waitall(NUM_NEIGHBOURS, m_request, MPI_STATUS_IGNORE);
 }
 
 
@@ -455,8 +449,6 @@ int Miniverse::CheckParticleBox(particle_type* p) {
     if(p->x >= m_box.x1)  return RIGHT;
     if(p->y < m_box.y0) return DOWN;
     if(p->y >= m_box.y1) return UP;
-
-    // TODO: CHECK DIAGONALS AS WELL!!!
 
     // return flag that the particle is still in the same box
     return -1;

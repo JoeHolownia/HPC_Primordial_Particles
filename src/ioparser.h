@@ -30,6 +30,7 @@ public:
     // constructor and core functions
     IOParser(std::string out_disp_fpath, std::string out_log_fpath);
     void OpenOutFile();
+    void RemoveBinaryFiles();
     void WriteStateToOutFile(std::list<particle_type*> state, int n);
     void CloseOutFile();
 
