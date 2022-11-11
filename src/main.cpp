@@ -79,10 +79,10 @@ int main(int argc, char *argv[]) {
 	auto start_time = std::chrono::high_resolution_clock::now();
 
 	// initalise MPI
-    int rank, num_procs;
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+	int rank, num_procs;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
 	// global universe variables
 	int global_num_particles, global_width, global_height, time_steps;
@@ -184,21 +184,26 @@ int main(int argc, char *argv[]) {
 
 	if (rank == 0) {
 
-		// print time details to stdout
+		// get time information
 		auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
 		auto time_spent_in_parallel = std::chrono::duration_cast<std::chrono::microseconds>(parallel_finish_time - finish_init_time);
 		auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
 		auto average_time_per_step = time_spent_in_parallel.count() / (float) time_steps;
 		auto serial_time_spent = total_time_spent.count() - time_spent_in_parallel.count();
 		
+		// // print time details to stdout
 		std::cout << "Time spent in initialization:                     " << std::setw(12) << time_spent_in_init.count() << " us\n";
-      	std::cout << "Time spent in simulation (parallel):              " << std::setw(12) << time_spent_in_parallel.count() << " us\n";
-      	std::cout << "Steps:                                            " << std::setw(12) << time_steps << "\n";
-      	std::cout << "Average Time Per Step:                            " << std::setw(12) << average_time_per_step << " us\n";
-      	std::cout << "Total time:                                       " << std::setw(12) << total_time_spent.count() << " us\n";
-      	std::cout << "Serial time:                                      " << std::setw(12) << serial_time_spent << " us\n";
+		std::cout << "Time spent in simulation (parallel):              " << std::setw(12) << time_spent_in_parallel.count() << " us\n";
+		std::cout << "Steps:                                            " << std::setw(12) << time_steps << "\n";
+		std::cout << "Average Time Per Step:                            " << std::setw(12) << average_time_per_step << " us\n";
+		std::cout << "Total time:                                       " << std::setw(12) << total_time_spent.count() << " us\n";
+		std::cout << "Serial time:                                      " << std::setw(12) << serial_time_spent << " us\n";
 
-    // call Python to plot data 
+		// // for recording data [Num Particles, Num Procs, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
+		std::cout << global_num_particles << "," << num_procs << "," << total_time_spent.count() << "," << serial_time_spent << "," 
+		<< time_steps << "," << average_time_per_step << "," << time_spent_in_parallel.count() << "\n";
+
+		// // call Python to plot data 
 		// std::string command = "python3 display.py";
 		// SystemCommandCall(command);
     }
