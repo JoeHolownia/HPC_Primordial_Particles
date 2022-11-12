@@ -122,12 +122,6 @@ Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int widt
     m_num_particles = num_particles;
     m_universe = universe;
 
-    // initalise buffers as number of particles
-    for (int i = 0; i < NUM_NEIGHBOURS; i++) {
-        m_send_buffer[i] = new particle_type[1000];
-        //m_recv_buffer[i] = new particle_type[m_num_particles];
-    }
-
     // unpack universe settings
     u_num_particles = m_universe -> u_num_particles;
     u_width = m_universe -> u_width;
@@ -141,6 +135,12 @@ Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int widt
     radius_sqrd = m_universe -> u_radius_sqrd;
     close_radius = m_universe -> u_close_radius;
     close_radius_sqrd = m_universe -> u_close_radius_sqrd;
+
+    // initalise buffers as number of particles in each grid cell (n/P)
+    for (int i = 0; i < NUM_NEIGHBOURS; i++) {
+        m_send_buffer[i] = new particle_type[m_num_particles];
+        m_recv_buffer[i] = new particle_type[m_num_particles];
+    }
 
     // initialise the start state using the given parameters
     InitState();
@@ -194,13 +194,10 @@ void Miniverse::Step() {
      * 
      */
 
-    // reset send counts for this iteration, and
-    // and set send buffer size to be number of particles in this grid cell
-    for(int i = 0; i < NUM_NEIGHBOURS; i++) {
-        //m_send_buffer[i] = new particle_type[2000];
-        m_edge_send_counts[i] = 0;
-        m_send_counts[i] = 0;
-        m_recv_counts[i] = 0;
+    // reset send counts for this iteration
+    for(int j = 0; j < NUM_NEIGHBOURS; j++) {
+        m_edge_send_counts[j] = 0;
+        m_send_counts[j] = 0;
     }
 
     // Step 1: determine interactions between particles within own grid cell
@@ -243,30 +240,27 @@ void Miniverse::Step() {
 
 
     // Step 2: send and receive particles which were in contact with walls, and process interactions between them
-    // SendRecvParticles(m_edge_send_counts, 0);
+    SendRecvParticles(m_edge_send_counts, 0);
     
-    // // iterate through received data and edge list and determine interactions
-    // // between particles on each grid border
-    // for(int i = 0; i < NUM_NEIGHBOURS; i++) {
+    // iterate through received data and edge list and determine interactions
+    // between particles on each grid border
+    for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-    //     int num_particles_recvd;
-    //     MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
+        int num_particles_recvd;
+        MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
 
-    //     for (particle_type* &p1 : m_particle_list) {
+        for (particle_type* &p1 : m_particle_list) {
 
-    //         for(int j = 0; j < num_particles_recvd; j++) {
+            for(int j = 0; j < num_particles_recvd; j++) {
 
-    //             // get received particle
-    //             particle_type recvd_p = m_recv_buffer[i][j];
+                // get received particle
+                particle_type recvd_p = m_recv_buffer[i][j];
 
-    //             // calculate neighbour counts for p1
-    //             CheckIfNeighbours(p1, &recvd_p);
-    //         }
-    //     }
-
-    //     // delete receive buffer
-    //     delete[] m_recv_buffer[i];
-    // }
+                // calculate neighbour counts for p1
+                CheckIfNeighbours(p1, &recvd_p);
+            }
+        }
+    }
 
     // Step 3: now we have final counts, update colours, velocities and headings, for all particles and then update their
     // positions, passing to other processes and removing from local list if they go outside of the local box.
@@ -325,7 +319,6 @@ void Miniverse::Step() {
 
         int num_particles_recvd;
         MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
-        m_recv_counts[i] = num_particles_recvd;
         for(int j = 0; j < num_particles_recvd; j++) {
 
             // instantiate new particle
@@ -342,18 +335,15 @@ void Miniverse::Step() {
         }
     }
 
-    // clear edge particle lists at end of each step, 
-    // and update total number of particles in grid cell for buffer sizes
+    // clear edge particle lists at end of each step
     for (int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-        // clear particles
-        m_edge_lists[i].clear();
-        //delete[] m_send_buffer[i];
-        // delete receive buffer
-        delete[] m_recv_buffer[i];
+        // DEBUG: set particle colours on edge to magenta
+        // for (particle_type* &p : m_edge_lists[i]) {
+        //     p->colour = magenta;
+        // }
 
-        // update particle num
-        m_num_particles = m_particle_list.size();
+        m_edge_lists[i].clear(); 
     }
 }
 
@@ -411,29 +401,11 @@ void Miniverse::SendRecvParticles(int* send_counts, int tag) {
 
     for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-        printf("I'm proc: %d and I sent: %d particles tp proc %d \n", m_rank, send_counts[i], m_neighbours[i]);
-        int count;
-        MPI_Isend(&send_counts[i], 1, MPI_INT, m_neighbours[i], tag + 100, m_grid_comm, &(m_request[i]));
-        MPI_Irecv(&count, 1, MPI_INT, m_neighbours[i], tag + 100, m_grid_comm, &(m_request[i]));
-        printf("I'm proc: %d and I detected that I need to receive %d particles from proc: %d\n", m_rank, count, m_neighbours[i]);
-
-        // probe for recv particle count
-        // printf("M Status Before: %d \n", m_status[i]);
-        // MPI_Probe(MPI_ANY_SOURCE, tag, m_grid_comm, &(m_status[i]));
-        // printf("M Status After: %d \n", m_status[i]);
-        
-        //int num_particles_recvd;
-        //printf("Num particles received: %d\n", num_particles_recvd);
-        //MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
-
-        m_recv_buffer[i] = new particle_type[count];
-        // printf("Receive Buffer Size: %d\n", sizeof(m_recv_buffer[i]) / sizeof(particle_type));
-
         // send and receive particles to and from corresponding neighbor
+        printf("Sending Particles...\n");
         MPI_Send(m_send_buffer[i], send_counts[i], mpi_particle_type, m_neighbours[i], tag, m_grid_comm);
-        MPI_Recv(m_recv_buffer[i], count, mpi_particle_type, m_neighbours[i], tag, m_grid_comm, &(m_status[i]));
-        //MPI_Recv(m_recv_buffer[i], num_particles_recvd, mpi_particle_type, MPI_ANY_SOURCE, tag, m_grid_comm, &(m_status[i]));
-        printf("I'm proc: %d and I received the particles from proc %d...\n", m_rank, m_neighbours[i]);
+        MPI_Recv(m_recv_buffer[i], m_num_particles, mpi_particle_type, MPI_ANY_SOURCE, tag, m_grid_comm, &(m_status[i]));
+        printf("Received Particles...\n");
     }
 }
 
@@ -515,12 +487,12 @@ void Miniverse::Clean() {
     for (auto& particle : m_particle_list) {
         delete particle;
     }
-    m_particle_list.clear();
+    m_particle_list.clear(); 
 
-    // clear MPi communication buffers
+    // clear MPI buffers
     for (int i = 0; i < NUM_NEIGHBOURS; i++) {
         delete[] m_send_buffer[i];
-        //delete[] m_recv_buffer[i];
+        delete[] m_recv_buffer[i];
     }
 
     // close io parser

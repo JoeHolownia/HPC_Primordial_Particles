@@ -18,12 +18,15 @@
 #include <mpi.h>
 #include <array>
 
-#define COMM_BUFFER_SIZE 2000
 #define NUM_NEIGHBOURS 4
 #define UP 0
 #define DOWN 1
 #define LEFT 2
 #define RIGHT 3
+#define UP_RIGHT 4
+#define DOWN_RIGHT 5
+#define DOWN_LEFT 6
+#define UP_LEFT 7
 
 class Universe {
 public:
@@ -105,11 +108,10 @@ private:
     int* m_neighbours;
     int m_edge_send_counts[NUM_NEIGHBOURS]={0};
     int m_send_counts[NUM_NEIGHBOURS]={0};
-    int m_recv_counts[NUM_NEIGHBOURS]={0};
     particle_type* m_send_buffer[NUM_NEIGHBOURS];
     particle_type* m_recv_buffer[NUM_NEIGHBOURS];
+    //MPI_Request m_request[NUM_NEIGHBOURS];
     MPI_Status m_status[NUM_NEIGHBOURS];
-    MPI_Request m_request[NUM_NEIGHBOURS];
 
     // lists of pointers to particles on edges of box
     std::list<particle_type*> m_edge_lists[NUM_NEIGHBOURS];
