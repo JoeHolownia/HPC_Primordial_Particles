@@ -63,8 +63,7 @@ void calculate_grid_layout(int num_procs, int *grid_rows, int *grid_cols) {
             based on the number of processes.
   */
 
-    int i;
-    for (i = sqrt(num_procs); i > 0; i--) {
+    for (int i = sqrt(num_procs); i > 0; i--) {
         if (num_procs % i == 0) {
             *grid_rows = i;
             *grid_cols = num_procs / i;
@@ -123,15 +122,20 @@ int main(int argc, char *argv[]) {
 	// init grid variables
     int grid_rows, grid_cols, reorder = 1, neighbours[NUM_NEIGHBOURS], dims[2], my_coords[2], periods[2] = {1, 1};
 
-	// create processes in 2-D cartesian grid, which wraps.
+	// create processes in 2-D cartesian grid with wrapping
+	// first get grid layout and create dimensions
 	calculate_grid_layout(num_procs, &grid_rows, &grid_cols);
     dims[0] = grid_rows;
     dims[1] = grid_cols;
     MPI_Dims_create(num_procs, 2, dims); 
+
+	// create cartesian processor system
 	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &grid_comm);
+
+	// get coordinates of current process
     MPI_Cart_get(grid_comm, 2, dims, periods, my_coords);
 
-  	// calculate the local box dimension.
+  	// calculate dimensions of the local box
 	box_coord_type local_box;
     int local_box_width = global_width / grid_cols;
     int local_box_height = global_height / grid_rows;
@@ -140,7 +144,7 @@ int main(int argc, char *argv[]) {
     local_box.x1 = (my_coords[1] == grid_cols - 1) ? global_width : (my_coords[1] + 1) * local_box_width;
     local_box.y1 = (my_coords[0] == grid_rows - 1) ? global_height : (my_coords[0] + 1) * local_box_height;
 
-    // get the rank of neighbor processors.
+    // get the ranks of neighbouring processes
     MPI_Cart_shift(grid_comm, 0, 1, &neighbours[DOWN], &neighbours[UP]);
     MPI_Cart_shift(grid_comm, 1, 1, &neighbours[LEFT], &neighbours[RIGHT]);
 
@@ -169,7 +173,7 @@ int main(int argc, char *argv[]) {
       // need to run miniverse internal step, then sharing step, then position update step
       miniverse.Step();
       miniverse.WriteLocalParticlesToOutFile();
-      printf("STEP %d finished... \n", i);
+      //printf("STEP %d finished... \n", i);
     }
 
 	// parallel portion (simulation) finish time

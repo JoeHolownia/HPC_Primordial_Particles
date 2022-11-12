@@ -88,17 +88,20 @@ int main(int argc, char *argv[]) {
     io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
 
   	// time recorded for initialisation
-	  auto finish_init_time = std::chrono::high_resolution_clock::now();
+	auto finish_init_time = std::chrono::high_resolution_clock::now();
 
     // run simulation for all time steps
+    auto parallel_time = std::chrono::microseconds::zero();
     for (int i = 0; i < time_steps; i++) {
-      // Timer text_time;
-      universe.Step();
-      io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+		auto step_start_time = std::chrono::high_resolution_clock::now();
+		universe.Step();
+		auto step_finish_time = std::chrono::high_resolution_clock::now();
+		parallel_time += std::chrono::duration_cast<std::chrono::microseconds>(step_finish_time - step_start_time);
+		io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }
 
     // parallel portion (simulation) finish time
-    auto parallel_finish_time = std::chrono::high_resolution_clock::now();
+    //auto parallel_finish_time = std::chrono::high_resolution_clock::now();
 
     // clean up memory
     io_parser.CloseOutFile();
@@ -109,14 +112,14 @@ int main(int argc, char *argv[]) {
 
     // get time information
 	auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
-	auto time_spent_in_parallel = std::chrono::duration_cast<std::chrono::microseconds>(parallel_finish_time - finish_init_time);
+	//auto time_spent_in_parallel = std::chrono::duration_cast<std::chrono::microseconds>(parallel_finish_time - finish_init_time);
 	auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
-	auto average_time_per_step = time_spent_in_parallel.count() / (float) time_steps;
-	auto serial_time_spent = total_time_spent.count() - time_spent_in_parallel.count();
+	auto average_time_per_step = parallel_time.count() / (float) time_steps;
+	auto serial_time_spent = total_time_spent.count() - parallel_time.count();
 
     // // for recording data [Num Particles, Num Procs, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
 	std::cout << num_particles << "," << total_time_spent.count() << "," << serial_time_spent << "," 
-	<< time_steps << "," << average_time_per_step << "," << time_spent_in_parallel.count() << "\n";
+	<< time_steps << "," << average_time_per_step << "," << parallel_time.count() << "\n";
 
     // // call Python to plot data 
     //  std::string command = "python display.py";

@@ -402,10 +402,8 @@ void Miniverse::SendRecvParticles(int* send_counts, int tag) {
     for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
         // send and receive particles to and from corresponding neighbor
-        printf("Sending Particles...\n");
         MPI_Send(m_send_buffer[i], send_counts[i], mpi_particle_type, m_neighbours[i], tag, m_grid_comm);
         MPI_Recv(m_recv_buffer[i], m_num_particles, mpi_particle_type, MPI_ANY_SOURCE, tag, m_grid_comm, &(m_status[i]));
-        printf("Received Particles...\n");
     }
 }
 

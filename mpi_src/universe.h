@@ -23,10 +23,6 @@
 #define DOWN 1
 #define LEFT 2
 #define RIGHT 3
-#define UP_RIGHT 4
-#define DOWN_RIGHT 5
-#define DOWN_LEFT 6
-#define UP_LEFT 7
 
 class Universe {
 public:
