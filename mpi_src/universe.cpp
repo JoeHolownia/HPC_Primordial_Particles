@@ -243,30 +243,30 @@ void Miniverse::Step() {
 
 
     // Step 2: send and receive particles which were in contact with walls, and process interactions between them
-    SendRecvParticles(m_edge_send_counts, 0);
+    // SendRecvParticles(m_edge_send_counts, 0);
     
-    // iterate through received data and edge list and determine interactions
-    // between particles on each grid border
-    for(int i = 0; i < NUM_NEIGHBOURS; i++) {
+    // // iterate through received data and edge list and determine interactions
+    // // between particles on each grid border
+    // for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-        int num_particles_recvd;
-        MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
+    //     int num_particles_recvd;
+    //     MPI_Get_count(&(m_status[i]), mpi_particle_type, &num_particles_recvd);
 
-        for (particle_type* &p1 : m_particle_list) {
+    //     for (particle_type* &p1 : m_particle_list) {
 
-            for(int j = 0; j < num_particles_recvd; j++) {
+    //         for(int j = 0; j < num_particles_recvd; j++) {
 
-                // get received particle
-                particle_type recvd_p = m_recv_buffer[i][j];
+    //             // get received particle
+    //             particle_type recvd_p = m_recv_buffer[i][j];
 
-                // calculate neighbour counts for p1
-                CheckIfNeighbours(p1, &recvd_p);
-            }
-        }
+    //             // calculate neighbour counts for p1
+    //             CheckIfNeighbours(p1, &recvd_p);
+    //         }
+    //     }
 
-        // delete receive buffer
-        delete[] m_recv_buffer[i];
-    }
+    //     // delete receive buffer
+    //     delete[] m_recv_buffer[i];
+    // }
 
     // Step 3: now we have final counts, update colours, velocities and headings, for all particles and then update their
     // positions, passing to other processes and removing from local list if they go outside of the local box.
@@ -349,6 +349,8 @@ void Miniverse::Step() {
         // clear particles
         m_edge_lists[i].clear();
         //delete[] m_send_buffer[i];
+        // delete receive buffer
+        delete[] m_recv_buffer[i];
 
         // update particle num
         m_num_particles = m_particle_list.size();
@@ -409,11 +411,11 @@ void Miniverse::SendRecvParticles(int* send_counts, int tag) {
 
     for(int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-        printf("Num particles sent: %d \n", send_counts[i]);
+        printf("I'm proc: %d and I sent: %d particles tp proc %d \n", m_rank, send_counts[i], m_neighbours[i]);
         int count;
-        MPI_Send(&send_counts[i], 1, MPI_INT, m_neighbours[i], 10, m_grid_comm);
-        MPI_Recv(&count, 1, MPI_INT, m_neighbours[i], 10, m_grid_comm, MPI_STATUS_IGNORE);
-        printf("Count received: %d \n", count);
+        MPI_Isend(&send_counts[i], 1, MPI_INT, m_neighbours[i], tag + 100, m_grid_comm, &(m_request[i]));
+        MPI_Irecv(&count, 1, MPI_INT, m_neighbours[i], tag + 100, m_grid_comm, &(m_request[i]));
+        printf("I'm proc: %d and I detected that I need to receive %d particles from proc: %d\n", m_rank, count, m_neighbours[i]);
 
         // probe for recv particle count
         // printf("M Status Before: %d \n", m_status[i]);
@@ -431,7 +433,7 @@ void Miniverse::SendRecvParticles(int* send_counts, int tag) {
         MPI_Send(m_send_buffer[i], send_counts[i], mpi_particle_type, m_neighbours[i], tag, m_grid_comm);
         MPI_Recv(m_recv_buffer[i], count, mpi_particle_type, m_neighbours[i], tag, m_grid_comm, &(m_status[i]));
         //MPI_Recv(m_recv_buffer[i], num_particles_recvd, mpi_particle_type, MPI_ANY_SOURCE, tag, m_grid_comm, &(m_status[i]));
-        printf("Received Particles...\n");
+        printf("I'm proc: %d and I received the particles from proc %d...\n", m_rank, m_neighbours[i]);
     }
 }
 
