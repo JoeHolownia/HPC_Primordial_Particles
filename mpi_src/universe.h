@@ -62,6 +62,7 @@ public:
     void AddToSendBuffer(particle_type* send_buffer, particle_type* p);
     void WriteLocalParticlesToOutFile();
     void Clean();
+    int GetNumSends();
 
     // getters and setters
     std::list<particle_type*> GetParticleList();
@@ -111,6 +112,9 @@ private:
 
     // lists of pointers to particles on edges of box
     std::list<particle_type*> m_edge_lists[NUM_NEIGHBOURS];
+
+    // number of particles sent for debug
+    int m_total_send_count;
 
 };
 

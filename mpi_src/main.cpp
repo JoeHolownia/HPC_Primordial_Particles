@@ -33,30 +33,6 @@ void SystemCommandCall(std::string command) {
   #endif
 }
 
-// this is a helpful struct to take times of things this in a scope
-double Totaltime, timeAvg;
-int TimerCounter;
-struct Timer {
-  std::chrono::high_resolution_clock::time_point start, end;
-  std::chrono::duration<float> duration;
-  float DurationMilliSec;
-  Timer()//Timer is started with the a scoop
-  {
-    start=std::chrono::high_resolution_clock::now();
-
-  }
-  ~Timer()//Timer is stoped when the scoop is existed
-  {
-    end=std::chrono::high_resolution_clock::now();
-    duration =end-start;
-    DurationMilliSec=duration.count()*1e3;
-
-     Totaltime = Totaltime + (duration.count()*1e3);
-      TimerCounter++;
-    std::cout<<DurationMilliSec<<"\n";
-  }
-};
-
 void calculate_grid_layout(int num_procs, int *grid_rows, int *grid_cols) {
   /**
   *  @brief Determine the number of grid cells in the cartesian space 
@@ -114,7 +90,7 @@ int main(int argc, char *argv[]) {
 	MPI_Bcast(&gamma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&time_steps, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-	printf("Yo I'm proc: %d and here is my Global Data - Num Particles: %d, Height: %d, Width: %d\n", rank, global_num_particles, global_height, global_width);
+	//printf("Yo I'm proc: %d and here is my Global Data - Num Particles: %d, Height: %d, Width: %d\n", rank, global_num_particles, global_height, global_width);
 
     // init MPI grid communicator
     MPI_Comm grid_comm;
@@ -170,10 +146,10 @@ int main(int argc, char *argv[]) {
     // run simulation for all time steps
     for (int i = 0; i < time_steps; i++) {
 
-      // need to run miniverse internal step, then sharing step, then position update step
-      miniverse.Step();
-      miniverse.WriteLocalParticlesToOutFile();
-      //printf("STEP %d finished... \n", i);
+		// need to run miniverse internal step, then sharing step, then position update step
+		//printf("STEP %d... \n", i);
+		miniverse.Step();
+		miniverse.WriteLocalParticlesToOutFile();
     }
 
 	// parallel portion (simulation) finish time
@@ -186,6 +162,11 @@ int main(int argc, char *argv[]) {
 	// record final finish time
 	auto finish_time = std::chrono::high_resolution_clock::now();
 
+	// get sum of sends for all processes
+	int this_proc_send_count = miniverse.GetNumSends();
+	int sum_of_send_counts;
+	MPI_Reduce(&this_proc_send_count, &sum_of_send_counts, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
 	if (rank == 0) {
 
 		// get time information
@@ -195,7 +176,7 @@ int main(int argc, char *argv[]) {
 		auto average_time_per_step = time_spent_in_parallel.count() / (float) time_steps;
 		auto serial_time_spent = total_time_spent.count() - time_spent_in_parallel.count();
 		
-		// // print time details to stdout
+		// print time details to stdout
 		std::cout << "Time spent in initialization:                     " << std::setw(12) << time_spent_in_init.count() << " us\n";
 		std::cout << "Time spent in simulation (parallel):              " << std::setw(12) << time_spent_in_parallel.count() << " us\n";
 		std::cout << "Steps:                                            " << std::setw(12) << time_steps << "\n";
@@ -203,18 +184,16 @@ int main(int argc, char *argv[]) {
 		std::cout << "Total time:                                       " << std::setw(12) << total_time_spent.count() << " us\n";
 		std::cout << "Serial time:                                      " << std::setw(12) << serial_time_spent << " us\n";
 
-		// // for recording data [Num Particles, Num Procs, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
-		std::cout << global_num_particles << "," << num_procs << "," << total_time_spent.count() << "," << serial_time_spent << "," 
-		<< time_steps << "," << average_time_per_step << "," << time_spent_in_parallel.count() << "\n";
+		// // for recording data [Num Particles, Num Procs, Num Sends, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
+		// std::cout << global_num_particles << "," << num_procs << "," << sum_of_send_counts << "," << total_time_spent.count() << "," << serial_time_spent << "," 
+		// << time_steps << "," << average_time_per_step << "," << time_spent_in_parallel.count() << "\n";
 
 		// // call Python to plot data 
-		// std::string command = "python3 display.py";
-		// SystemCommandCall(command);
+		std::string command = "python3 display.py";
+		SystemCommandCall(command);
     }
 
-	printf("I HAVE MADE IT TO THE END OF MY JOURNEY!!!\n");
-
 	// end MPI
-  MPI_Finalize();
-  return 0;
+	MPI_Finalize();
+  	return 0;
 }

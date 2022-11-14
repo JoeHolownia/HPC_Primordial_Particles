@@ -1,4 +1,4 @@
-CFLAGS = -std=c++11 -O0 -lm -fopenmp
+CFLAGS = -std=c++11 -O3 -lm -fopenmp
 
 all: main.o universe.o ioparser.o
 	g++ main.o universe.o ioparser.o ${CFLAGS} -o particles
@@ -16,3 +16,6 @@ clean:
 	rm *.o
 	rm particles
 	rm *.exe
+
+clean_out:
+	rm ../results/*.bin

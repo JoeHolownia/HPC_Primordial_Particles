@@ -76,9 +76,9 @@ int main(int argc, char *argv[]) {
     float gamma = settings["gamma"].get<float>();
     int time_steps = settings["time_steps"].get<int>();
 
-	// define seed
-	unsigned int seed = (unsigned int)time(0);
-	//unsigned int seed = 100;
+    // define seed
+    //unsigned int seed = (unsigned int)time(0);
+    unsigned int seed = 100; // for runtime analyses
 
     // instantiate universe
     Universe universe(num_particles, width, height, density, alpha, beta, gamma, seed);
@@ -93,15 +93,18 @@ int main(int argc, char *argv[]) {
     // run simulation for all time steps
     auto parallel_time = std::chrono::microseconds::zero();
     for (int i = 0; i < time_steps; i++) {
+
+
 		auto step_start_time = std::chrono::high_resolution_clock::now();
+		
+		// run PPS algorithm update step
 		universe.Step();
 		auto step_finish_time = std::chrono::high_resolution_clock::now();
 		parallel_time += std::chrono::duration_cast<std::chrono::microseconds>(step_finish_time - step_start_time);
+		
+		// write state output to binary file
 		io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
     }
-
-    // parallel portion (simulation) finish time
-    //auto parallel_finish_time = std::chrono::high_resolution_clock::now();
 
     // clean up memory
     io_parser.CloseOutFile();
@@ -112,7 +115,6 @@ int main(int argc, char *argv[]) {
 
     // get time information
 	auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
-	//auto time_spent_in_parallel = std::chrono::duration_cast<std::chrono::microseconds>(parallel_finish_time - finish_init_time);
 	auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
 	auto average_time_per_step = parallel_time.count() / (float) time_steps;
 	auto serial_time_spent = total_time_spent.count() - parallel_time.count();
@@ -121,9 +123,9 @@ int main(int argc, char *argv[]) {
 	std::cout << num_particles << "," << total_time_spent.count() << "," << serial_time_spent << "," 
 	<< time_steps << "," << average_time_per_step << "," << parallel_time.count() << "\n";
 
-    // // call Python to plot data 
-    //  std::string command = "python display.py";
-    //  SystemCommandCall(command);
+  	// call Python to plot data 
+    std::string command = "python3 display.py";
+    SystemCommandCall(command);
 
     return 0;
 }

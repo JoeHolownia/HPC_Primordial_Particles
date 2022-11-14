@@ -136,7 +136,7 @@ Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int widt
     close_radius = m_universe -> u_close_radius;
     close_radius_sqrd = m_universe -> u_close_radius_sqrd;
 
-    // initalise buffers as number of particles in each grid cell (n/P)
+    // initalise buffers as number of particles in each grid cell (n/p)
     for (int i = 0; i < NUM_NEIGHBOURS; i++) {
         m_send_buffer[i] = new particle_type[m_num_particles];
         m_recv_buffer[i] = new particle_type[m_num_particles];
@@ -154,9 +154,6 @@ Miniverse::Miniverse(int num_proc, int rank, box_coord_type box_coords, int widt
 
     // write initial state to out file
     WriteLocalParticlesToOutFile();
-
-    printf("Hello from process %d out of %d, I have Height: %d, Width: %d, Local Num Parts: %d, x0: %lf, x1: %lf, y0: %lf, y1: %lf\n", 
-	m_rank, m_num_proc, m_width, m_height, m_num_particles, m_box.x0, m_box.x1, m_box.y0, m_box.y1);
 }
 
 void::Miniverse::InitState() {
@@ -165,8 +162,8 @@ void::Miniverse::InitState() {
      */
 
     // get seeded uniform random distribution
-    m_universe -> u_rand_gen.seed((unsigned int)time(0) + m_rank);
-    //m_universe -> u_rand_gen.seed(100); // FOR TIMING!
+    //m_universe -> u_rand_gen.seed((unsigned int)time(0) + m_rank);
+    m_universe -> u_rand_gen.seed(100 + m_rank); // FOR TIMING!
     std::uniform_real_distribution<float> uniform_rand(0.0f, 1.0f);
 
     // initialise all particles with random positions and headings
@@ -335,15 +332,20 @@ void Miniverse::Step() {
         }
     }
 
-    // clear edge particle lists at end of each step
+    // clear edge particle lists and send/receive buffers at end of each step
     for (int i = 0; i < NUM_NEIGHBOURS; i++) {
 
-        // DEBUG: set particle colours on edge to magenta
-        // for (particle_type* &p : m_edge_lists[i]) {
-        //     p->colour = magenta;
-        // }
-
+        // clearing these buffers seems to help with very large problem sizes...
+        delete[] m_send_buffer[i];
+        delete[] m_recv_buffer[i];
+        m_send_buffer[i] = new particle_type[m_num_particles];
+        m_recv_buffer[i] = new particle_type[m_num_particles];
+        
+        // clear edge list
         m_edge_lists[i].clear(); 
+
+        // record count
+        m_total_send_count += m_send_counts[i];
     }
 }
 
@@ -516,3 +518,10 @@ int Miniverse::GetNumParticles() {
     return m_num_particles;
 }
 
+int Miniverse::GetNumSends() {
+    /**
+    *  @brief Returns the total number of MPI sends over the simulation
+    *         for this process.
+    */
+    return m_total_send_count;
+}
