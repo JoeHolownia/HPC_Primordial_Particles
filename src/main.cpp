@@ -94,7 +94,6 @@ int main(int argc, char *argv[]) {
     auto parallel_time = std::chrono::microseconds::zero();
     for (int i = 0; i < time_steps; i++) {
 
-
 		auto step_start_time = std::chrono::high_resolution_clock::now();
 		
 		// run PPS algorithm update step
@@ -114,14 +113,14 @@ int main(int argc, char *argv[]) {
     auto finish_time = std::chrono::high_resolution_clock::now();
 
     // get time information
-	auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
-	auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
-	auto average_time_per_step = parallel_time.count() / (float) time_steps;
-	auto serial_time_spent = total_time_spent.count() - parallel_time.count();
+    auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
+    auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
+    auto average_time_per_step = parallel_time.count() / (float) time_steps;
+    auto serial_time_spent = total_time_spent.count() - parallel_time.count();
 
     // // for recording data [Num Particles, Num Procs, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
-	std::cout << num_particles << "," << total_time_spent.count() << "," << serial_time_spent << "," 
-	<< time_steps << "," << average_time_per_step << "," << parallel_time.count() << "\n";
+    std::cout << num_particles << "," << total_time_spent.count() << "," << serial_time_spent << "," 
+    << time_steps << "," << average_time_per_step << "," << parallel_time.count() << "\n";
 
   	// call Python to plot data 
     std::string command = "python3 display.py";
