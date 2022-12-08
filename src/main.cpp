@@ -57,6 +57,9 @@ struct Timer {
 
 int main(int argc, char *argv[]) {
 
+  	// get the current time, for benchmarking
+	auto start_time = std::chrono::high_resolution_clock::now();
+
     // instantiate io parser
     IOParser io_parser("settings.json", "out_display.bin", "out_log.bin");
 
@@ -73,31 +76,55 @@ int main(int argc, char *argv[]) {
     float gamma = settings["gamma"].get<float>();
     int time_steps = settings["time_steps"].get<int>();
 
+    // define seed
+    //unsigned int seed = (unsigned int)time(0);
+    unsigned int seed = 100; // for runtime analyses
+
     // instantiate universe
-    Universe universe(num_particles, width, height, density, alpha, beta, gamma);
+    Universe universe(num_particles, width, height, density, alpha, beta, gamma, seed);
 
     // instante IO (i.e. class which handles keeping log file stream open, formatting for reading/writing)
     io_parser.OpenOutFile();
     io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
 
-    // run simulation for all time steps
-    for (int i = 0; i < time_steps; i++) {
-      // Timer text_time;
-      universe.Step();
-      io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
-    }
+  	// time recorded for initialisation
+	auto finish_init_time = std::chrono::high_resolution_clock::now();
 
-    // output average time
-    // timeAvg = Totaltime / (float) time_steps;
-    // std::cout<<timeAvg<<"ms\n";
+    // run simulation for all time steps
+    auto parallel_time = std::chrono::microseconds::zero();
+    for (int i = 0; i < time_steps; i++) {
+
+		auto step_start_time = std::chrono::high_resolution_clock::now();
+		
+		// run PPS algorithm update step
+		universe.Step();
+		auto step_finish_time = std::chrono::high_resolution_clock::now();
+		parallel_time += std::chrono::duration_cast<std::chrono::microseconds>(step_finish_time - step_start_time);
+		
+		// write state output to binary file
+		io_parser.WriteStateToOutFile(universe.GetCurrentState(), universe.GetNumParticles());
+    }
 
     // clean up memory
     io_parser.CloseOutFile();
     universe.Clean();
 
-    // call Python to plot data 
-     std::string command = "python display.py";
-     SystemCommandCall(command);
+    // record final finish time
+    auto finish_time = std::chrono::high_resolution_clock::now();
+
+    // get time information
+    auto time_spent_in_init = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_time - start_time);
+    auto total_time_spent = std::chrono::duration_cast<std::chrono::microseconds>(finish_time - start_time);
+    auto average_time_per_step = parallel_time.count() / (float) time_steps;
+    auto serial_time_spent = total_time_spent.count() - parallel_time.count();
+
+    // // for recording data [Num Particles, Num Procs, Total Time, Total Serial Time, Time Steps, Time Per Step, Total Parallel Time]
+    std::cout << num_particles << "," << total_time_spent.count() << "," << serial_time_spent << "," 
+    << time_steps << "," << average_time_per_step << "," << parallel_time.count() << "\n";
+
+  	// call Python to plot data 
+    std::string command = "python3 display.py";
+    SystemCommandCall(command);
 
     return 0;
 }
