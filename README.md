@@ -1,8 +1,7 @@
 # HPC Primordial Particle System
+This project contains a serial, OpenMP and MPI C++ implementation of the Primordial Particle system described in the article published in Nature: "How life emerges from a simplistic particle motion law".
 
 This is the repository for the COSC3500: High Performance Computing Project.
-
-This project contains a serial, OpenMP and MPI C++ implementation of the Primordial Particle system described in the article published in Nature: "How life emerges from a simplistic particle motion law".
 
 Article: https://www.nature.com/articles/srep37969
 YouTube Video: https://www.youtube.com/watch?v=makaJpLvbow&ab_channel=ArtificialLifeLabGraz
