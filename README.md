@@ -1,6 +1,8 @@
 # HPC Primordial Particle System
 This project contains a serial, OpenMP and MPI C++ implementation of the Primordial Particle system described in the article published in Nature: "How life emerges from a simplistic particle motion law".
 
+![My GIF](./example_overall_simulation.gif)
+
 Article: https://www.nature.com/articles/srep37969
 YouTube Video: https://www.youtube.com/watch?v=makaJpLvbow&ab_channel=ArtificialLifeLabGraz
 
