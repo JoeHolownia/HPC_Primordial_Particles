@@ -17,9 +17,9 @@ The project structure is broken into two source directories:
 
 This is for ease of use, and because of the fundamental changes made in the MPI implementation.
 
-## USE:
+## Usage
 
-### Serial / OpenMP implementation:
+### Serial / OpenMP implementation
 
 1. Ensure conda Python3 is in the PATH, or you are in a conda Python3 environment with matplotlib and numpy installed.
 2. Modify the parameters in the settings.json file
@@ -29,7 +29,7 @@ This is for ease of use, and because of the fundamental changes made in the MPI 
 4. Then, run the particles executable by using  -n <num_proc> ./particles
 5. A gif of the run and an image of the start state will be saved to the results directory.
 
-### MPI implementation:
+### MPI implementation
 
 First run the following in your terminal: 
 
